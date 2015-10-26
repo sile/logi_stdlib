@@ -7,6 +7,7 @@
 %% == NOTE ==
 %%
 %% TODO: no overload protection (only development purposes are recommended. see: lifetime option)
+%% TODO: overload protection (e.g. `process_info(user, message_queue_len)')
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
