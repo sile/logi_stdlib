@@ -1,6 +1,8 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% TODO: doc
+%%
+%% TODO: make more composable
 -module(logi_layout_color).
 
 -behaviour(logi_layout).

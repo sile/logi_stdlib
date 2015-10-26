@@ -33,7 +33,7 @@ TODO
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_log_fun-2">default_log_fun/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_log_fun-2">default_log_fun/2</a></td><td></td></tr><tr><td valign="top"><a href="#install-0">install/0</a></td><td></td></tr><tr><td valign="top"><a href="#install-1">install/1</a></td><td></td></tr><tr><td valign="top"><a href="#uninstall-0">uninstall/0</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -48,4 +48,22 @@ TODO
 default_log_fun(Event::<a href="#type-error_logger_event">error_logger_event()</a>, Logger::<a href="logi.md#type-logger_instance">logi:logger_instance()</a>) -&gt; <a href="logi.md#type-logger_instance">logi:logger_instance()</a>
 </code></pre>
 <br />
+
+<a name="install-0"></a>
+
+### install/0 ###
+
+`install() -> any()`
+
+<a name="install-1"></a>
+
+### install/1 ###
+
+`install(Options) -> any()`
+
+<a name="uninstall-0"></a>
+
+### uninstall/0 ###
+
+`uninstall() -> any()`
 

@@ -50,7 +50,7 @@ install(Condition) -> install(Condition, []).
 install(Condition, Options) ->
     SinkId = proplists:get_value(id, Options, ?MODULE),
     Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    Layout = proplists:get_value(layout, Options, logi_layout_color:new(logi_builtin_layout_simple:new())),
+    Layout = proplists:get_value(layout, Options, logi_layout_color:new(logi_layout_default:new())), % TODO: delete color
     Colored = proplists:get_value(colored, Options, true),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Condition, Options]),
     _ = is_boolean(Colored) orelse error(badarg, [Condition, Options]),
