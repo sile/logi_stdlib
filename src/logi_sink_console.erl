@@ -9,6 +9,12 @@
 %% TODO: no overload protection (only development purposes are recommended. see: lifetime option)
 %% TODO: overload protection (e.g. `process_info(user, message_queue_len)')
 %%
+%% TODO: `logi_sink:install(Condition, logi_sink_console:new())'
+%%
+%% TODO: logi_sink:get_destination: for client side automatic overload protection
+%% TODO: bps
+%%  => logi_sink_flow_regulator
+%%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
 %% TODO
@@ -51,9 +57,7 @@ install(Condition, Options) ->
     SinkId = proplists:get_value(id, Options, ?MODULE),
     Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
     Layout = proplists:get_value(layout, Options, logi_layout_color:new(logi_layout_default:new())), % TODO: delete color
-    Colored = proplists:get_value(colored, Options, true),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Condition, Options]),
-    _ = is_boolean(Colored) orelse error(badarg, [Condition, Options]),
 
     Sink = logi_sink:new(SinkId, ?MODULE, Condition, Layout),
     logi_channel:install_sink(Channel, Sink, Options).
