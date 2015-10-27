@@ -1,5 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
+%% TODO: logi_sink_tcp
+%%
 %% @doc TODO
 -module(logi_sink_file).
 

@@ -55,7 +55,7 @@ init([Logger, LogFun]) ->
 
 %% @private
 handle_event(Event, State0) ->
-    State1 = drop_overflew_messages(State0),
+    State1 = drop_overflowed_messages(State0),
     case State1#?STATE.drop_count of
         0 ->
             Logger = (State0#?STATE.log_fun)(Event, State1#?STATE.logger),
@@ -84,9 +84,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% TODO:
-drop_overflew_messages(State = #?STATE{drop_count = Count}) when Count > 0 ->
+drop_overflowed_messages(State = #?STATE{drop_count = Count}) when Count > 0 ->
     State;
-drop_overflew_messages(State) ->
+drop_overflowed_messages(State) ->
     {message_queue_len, Len} = erlang:process_info(self(), message_queue_len),
     Max = State#?STATE.max_message_queue_len,
     case Len =< Max of

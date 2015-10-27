@@ -80,7 +80,7 @@ adjust_format_string("tp" ++ Format, MaxLen) ->
 adjust_format_string("tP" ++ Format, MaxLen) ->
     "~" ++ MaxLen ++ "tP" ++ adjust_format_string(Format, MaxLen);
 adjust_format_string([$~, C | Format], MaxLen) ->
-    [$~, C, adjust_format_string(Format, MaxLen)];
+    [$~, C | adjust_format_string(Format, MaxLen)];
 adjust_format_string([C | Format], MaxLen) ->
     [C | adjust_format_string(Format, MaxLen)].
 
