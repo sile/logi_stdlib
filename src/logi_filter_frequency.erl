@@ -1,18 +1,43 @@
+%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc TODO
+%%
+%% === EXAMPLE ===
+%%
+%% TODO
 -module(logi_filter_frequency).
 
 -behaviour(logi_filter).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Exported API
+%%----------------------------------------------------------------------------------------------------------------------
 -export([new/0, new/1]).
 
+-export_type([pos_milliseconds/0]).
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% 'logi_filter' Callback API
+%%----------------------------------------------------------------------------------------------------------------------
 -export([filter/2]).
 
--define(IS_NON_NEG_INT(X), (is_integer(X) andalso X >= 0)).
+%%----------------------------------------------------------------------------------------------------------------------
+%% Macros & Records & Types
+%%----------------------------------------------------------------------------------------------------------------------
+-define(IS_POS_INT(X), (is_integer(X) andalso X > 0)).
 -define(STATE, ?MODULE).
 
--record(frequency_spec,
+-record(?STATE,
         {
-          intensity = 5   :: non_neg_integer(),
-          period  = 60000 :: timeout()
+          id_to_status = #{}             :: #{location_id() => status()},
+          expires = logi_util_heap:new() :: expires(),
+          intensity                      :: intensity()
+        }).
+
+-record(intensity,
+        {
+          max_count = 5   :: pos_integer(),
+          period  = 60000 :: pos_milliseconds()
         }).
 
 -record(normal,
@@ -22,71 +47,85 @@
 
 -record(overflow,
         {
-          drop_count = 1 :: non_neg_integer(),
+          drop_count = 1 :: pos_integer(),
           context        :: logi_context:context()
         }).
 
--record(?STATE,
-        {
-          id_to_status = #{}             :: #{location_id() => status()},
-          expires = logi_util_heap:new() :: logi_util_heap:heap(expire_entry()),
-          frequency_spec                 :: #frequency_spec{}
-        }).
-
 -type status() :: #normal{} | #overflow{}.
--type expire_entry() :: term(). % TODO:
--type location_id() :: term(). % TODO:
+-type expires() :: logi_util_heap:heap({ExpireTime::non_neg_milliseconds(), location_id()}).
+-type location_id() :: {module(), logi_location:line(), logi:headers()}.
+-type intensity() :: #intensity{}.
 -type non_neg_milliseconds() :: non_neg_integer().
+-type pos_milliseconds() :: pos_integer().
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Exported Functions
+%%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new([])
 -spec new() -> logi_filter:filter().
 new() -> new([]).
 
+%% @doc Creates a new filter instance
+%%
+%% TODO: location unit: pid, module, line, headers
+%%
+%% === OPTIONS ===
+%% `max_count':
+%% - TODO
+%% - default: `5'
+%%
+%% `period':
+%% - TODO
+%% - default: `60000'
 -spec new(Options) -> logi_filter:filter() when
       Options :: [Option],
-      Option  :: {intensity, non_neg_integer()}
-               | {period, timeout()}.
+      Option  :: {max_count, pos_integer()}
+               | {period, pos_milliseconds()}.
 new(Options) ->
     _ = is_list(Options) orelse error(badarg, [Options]),
-    Intensity = proplists:get_value(intensity, Options, 5),
+    MaxCount = proplists:get_value(max_count, Options, 5),
     Period = proplists:get_value(period, Options, 60000),
-    _ = ?IS_NON_NEG_INT(Intensity) orelse error(badarg, [Options]),
-    _ = ?IS_NON_NEG_INT(Intensity) orelse Intensity =:= infinity orelse error(badarg, [Options]),
+    _ = ?IS_POS_INT(MaxCount) orelse error(badarg, [Options]),
+    _ = ?IS_POS_INT(Period) orelse error(badarg, [Options]),
 
-    Spec =
-        #frequency_spec{
-           intensity = Intensity,
+    Intensity =
+        #intensity{
+           max_count = MaxCount,
            period    = Period
           },
-    State = #?STATE{frequency_spec = Spec},
+    State = #?STATE{intensity = Intensity},
     logi_filter:new(?MODULE, State).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% 'logi_filter' Callback Functions
+%%----------------------------------------------------------------------------------------------------------------------
+%% @private
 filter(Context, State0) ->
     State1 = flush_expired_entries(logi_context:get_timestamp(Context), State0),
     LocationId = get_location_id(Context),
-    #?STATE{id_to_status = IdToStatus0, expires = Expires0, frequency_spec = #frequency_spec{intensity = Intensity, period = Period}} = State1,
+    #?STATE{id_to_status = IdToStatus0, expires = Expires0, intensity = #intensity{max_count = MaxCount, period = Period}} = State1,
     Status0 = maps:get(LocationId, IdToStatus0, #normal{}),
     case Status0 of
         #overflow{drop_count = Drops} ->
             IdToStatus1 = maps:put(LocationId, Status0#overflow{drop_count = Drops + 1}, IdToStatus0),
             {false, State1#?STATE{id_to_status = IdToStatus1}};
-        #normal{write_count = Writes} when Writes >= Intensity ->
+        #normal{write_count = Writes} when Writes >= MaxCount ->
             Status1 = #overflow{context = Context},
             IdToStatus1 = maps:put(LocationId, Status1, IdToStatus0),
             {false, State1#?STATE{id_to_status = IdToStatus1}};
         #normal{write_count = Writes} ->
             Status1 = Status0#normal{write_count = Writes + 1},
             IdToStatus1 = maps:put(LocationId, Status1, IdToStatus0),
-            Expires1 =
-                case Period of
-                    infinity -> Expires0;
-                    _        ->
-                        ExpiryTime = to_milliseconds(logi_context:get_timestamp(Context)) + Period,
-                        logi_util_heap:in({ExpiryTime, LocationId}, Expires0)
-                end,
+
+            ExpiryTime = to_milliseconds(logi_context:get_timestamp(Context)) + Period,
+            Expires1 = logi_util_heap:in({ExpiryTime, LocationId}, Expires0),
+
             {true, State1#?STATE{id_to_status = IdToStatus1, expires = Expires1}}
     end.
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
 -spec get_location_id(logi_context:context()) -> location_id().
 get_location_id(Context) ->
     Location = logi_context:get_location(Context),
@@ -96,22 +135,24 @@ get_location_id(Context) ->
       logi_context:get_headers(Context)
     }.
 
--spec to_milliseconds(erlang:timestamp()) -> non_neg_integer().
+-spec to_milliseconds(erlang:timestamp()) -> non_neg_milliseconds().
 to_milliseconds({Mega, Seconds, Micro}) ->
     (Mega * 1000 * 1000 * 1000) + (Seconds * 1000) + (Micro div 1000).
 
 -spec flush_expired_entries(erlang:timestamp(), #?STATE{}) -> #?STATE{}.
 flush_expired_entries(Now, State) ->
-    #?STATE{id_to_status = IdToStatus0, expires = Expires0} = State,
+    #?STATE{id_to_status = IdToStatus0, expires = Expires0, intensity = Intensity} = State,
     case logi_util_heap:is_empty(Expires0) of
         true  -> State;
         false ->
-            {IdToStatus1, Expires1} = flush_expired_entries(to_milliseconds(Now), IdToStatus0, Expires0, State),
+            {IdToStatus1, Expires1} = flush_expired_entries(to_milliseconds(Now), IdToStatus0, Expires0, Intensity),
             State#?STATE{id_to_status = IdToStatus1, expires = Expires1}
     end.
 
-%%-spec flush_expired_entries(non_neg_integer(),
-flush_expired_entries(Now, IdToStatus0, Expires0, State) ->
+-spec flush_expired_entries(non_neg_milliseconds(), IdToStatus, Expires, intensity()) -> {IdToStatus, Expires} when
+      IdToStatus :: #{location_id() => status()},
+      Expires    :: expires().
+flush_expired_entries(Now, IdToStatus0, Expires0, Intensity) ->
     case logi_util_heap:peek(Expires0) of
         empty                                 -> {IdToStatus0, Expires0};
         {ExpiryTime, _} when ExpiryTime > Now -> {IdToStatus0, Expires0};
@@ -120,25 +161,24 @@ flush_expired_entries(Now, IdToStatus0, Expires0, State) ->
             Expires1 = logi_util_heap:out(Expires0),
             IdToStatus1 =
                 case Status of
-                    #normal{write_count = 0} -> maps:remove(LocationId, IdToStatus0);
+                    #normal{write_count = 1} -> maps:remove(LocationId, IdToStatus0);
                     #normal{write_count = C} -> maps:update(LocationId, #normal{write_count = C - 1}, IdToStatus0);
                     #overflow{}              ->
-                        ok = output_overflow_message(Now, Status),
-                        Intensity = State#?STATE.frequency_spec#frequency_spec.intensity,
-                        maps:update(LocationId, #normal{write_count = Intensity - 1} ,IdToStatus0)
+                        _ = output_overflow_message(Now, Status),
+                        MaxCount = Intensity#intensity.max_count,
+                        maps:update(LocationId, #normal{write_count = MaxCount - 1} ,IdToStatus0)
                 end,
-            flush_expired_entries(Now, IdToStatus1, Expires1, State)
+            flush_expired_entries(Now, IdToStatus1, Expires1, Intensity)
     end.
 
--spec output_overflow_message(non_neg_milliseconds(), #overflow{}) -> ok.
+-spec output_overflow_message(non_neg_milliseconds(), #overflow{}) -> any().
 output_overflow_message(Now, #overflow{drop_count = Drops, context = Context}) ->
     Duration = (Now - to_milliseconds(logi_context:get_timestamp(Context))) / 1000,
     Severity = logi_context:get_severity(Context),
-    _ = logi:Severity("Over a period of ~p seconds, ~p messages were dropped", [Duration, Drops],
-                      [
-                       {logger,   logi:new([{channel, logi_context:get_channel(Context)}])},
-                       {location, logi_context:get_location(Context)},
-                       {headers,  logi_context:get_headers(Context)},
-                       {metadata, logi_context:get_metadata(Context)}
-                      ]),
-    ok.
+    logi:Severity("Over a period of ~p seconds, ~p messages were dropped", [Duration, Drops],
+                  [
+                   {logger,   logi:new([{channel, logi_context:get_channel(Context)}])},
+                   {location, logi_context:get_location(Context)},
+                   {headers,  logi_context:get_headers(Context)},
+                   {metadata, logi_context:get_metadata(Context)}
+                  ]).

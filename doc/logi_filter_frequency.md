@@ -1,28 +1,50 @@
 
 
 # Module logi_filter_frequency #
+* [Description](#description)
+* [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
+TODO.
+
+Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+
 __Behaviours:__ [`logi_filter`](logi_filter.md).
+
+<a name="description"></a>
+
+## Description ##
+
+
+#### <a name="EXAMPLE">EXAMPLE</a> ####
+
+TODO
+<a name="types"></a>
+
+## Data Types ##
+
+
+
+
+### <a name="type-pos_milliseconds">pos_milliseconds()</a> ###
+
+
+<pre><code>
+pos_milliseconds() = pos_integer()
+</code></pre>
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#filter-2">filter/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new([])</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new([])</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new filter instance.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
-
-<a name="filter-2"></a>
-
-### filter/2 ###
-
-`filter(Context, State0) -> any()`
 
 <a name="new-0"></a>
 
@@ -43,5 +65,7 @@ Equivalent to [`new([])`](#new-1).
 new(Options) -&gt; <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {intensity, non_neg_integer()} | {period, timeout()}</code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {max_count, pos_integer()} | {period, <a href="#type-pos_milliseconds">pos_milliseconds()</a>}</code></li></ul>
+
+Creates a new filter instance
 
