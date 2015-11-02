@@ -7,13 +7,6 @@
 %% == NOTE ==
 %%
 %% TODO: no overload protection (only development purposes are recommended. see: lifetime option)
-%% TODO: overload protection (e.g. `process_info(user, message_queue_len)')
-%%
-%% TODO: `logi_sink:install(Condition, logi_sink_console:new())'
-%%
-%% TODO: logi_sink:get_destination: for client side automatic overload protection
-%% TODO: bps
-%%  => logi_sink_flow_regulator
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
@@ -26,64 +19,31 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([install/1, install/2]).
--export([uninstall/0, uninstall/1]).
+-export([new/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/4]).
+-export([write/5, default_layout/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv install(Condition, [])
--spec install(logi_sink:condition()) -> logi_channel:install_sink_result().
-install(Condition) -> install(Condition, []).
-
-%% @doc Installs a sink
+%% @doc Creates a new sink instance
 %%
-%% The default value of `Options':
-%% - id: `logi_sink_console'
-%% - channel: `logi_channel:default_channel()'
-%% - layout: `logi_layout_color:new(logi_builtin_layout_simple:new())' TODO: logi_layout_default
--spec install(logi_sink:condition(), Options) -> logi_channel:install_sink_result() when
-      Options :: [Option],
-      Option  :: {id, logi_sink:id()}
-               | {channel, logi_channel:id()}
-               | {layout, logi_layout:layout()}
-               | logi_channel:install_sink_option().
-install(Condition, Options) ->
-    SinkId = proplists:get_value(id, Options, ?MODULE),
-    Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    Layout = proplists:get_value(layout, Options, logi_layout_color:new(logi_layout_default:new())), % TODO: delete color
-    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Condition, Options]),
-
-    Sink = logi_sink:new(SinkId, ?MODULE, Condition, Layout),
-    logi_channel:install_sink(Channel, Sink, Options).
-
-%% @equiv uninstall([])
--spec uninstall() -> logi_channel:uninstall_sink_result().
-uninstall() -> uninstall([]).
-
-%% @doc Uninstalls a sink
-%%
-%% The default value of `Options':
-%% - id: `logi_sink_console'
-%% - channel: `logi_channel:default_channel()'
--spec uninstall(Options) -> logi_channel:uninstall_sink_result() when
-      Options :: [Option],
-      Option  :: {id, logi_sink:id()}
-               | {channel, logi_channel:id()}.
-uninstall(Options) ->
-    SinkId = proplists:get_value(id, Options, ?MODULE),
-    Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    logi_channel:uninstall_sink(Channel, SinkId).
+%% The default layout of the sink is `logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))'.
+-spec new() -> logi_sink:sink().
+new() ->
+    logi_sink:new(?MODULE).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Format, Data, Layout) ->
+write(Context, Layout, Format, Data, _) ->
     IoData = logi_layout:format(Context, Format, Data, Layout),
     io:put_chars(user, IoData).
+
+%% @private
+default_layout(_) ->
+    logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())).

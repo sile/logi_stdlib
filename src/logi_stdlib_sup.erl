@@ -32,6 +32,7 @@ init([]) ->
     Supervisor = fun (Module) -> {Module, {Module, start_link, []}, permanent, infinity, supervisor, [Module]} end,
     Children =
         [
+%%         Supervisor(logi_sink_tcp_writer_sup),
          Supervisor(logi_sink_file_writer_sup),
          Supervisor(logi_sink_flow_limiter_server_sup)
         ],

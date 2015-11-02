@@ -1,4 +1,4 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% TODO: doc
 %%
@@ -13,5 +13,5 @@
 new() ->
     logi_layout:new(?MODULE).
 
-format(_Context, Format, _Data, _) ->
-    Format.
+format(_Context, _Format, Data, _) ->
+    Data.

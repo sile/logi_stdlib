@@ -10,8 +10,10 @@
    ]},
   {mod, {logi_stdlib_app, []}},
   {applications,
-   [kernel,
+   [
+    kernel,
     stdlib,
+    inets,
     logi
    ]},
   {env,[]}
