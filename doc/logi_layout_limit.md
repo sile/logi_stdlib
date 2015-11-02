@@ -18,28 +18,31 @@ __Behaviours:__ [`logi_layout`](logi_layout.md).
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(BaseLayout, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="format-4"></a>
-
-### format/4 ###
-
-`format(Context, Format0, Data0, Extra) -> any()`
-
 <a name="new-1"></a>
 
 ### new/1 ###
 
-`new(BaseLayout) -> any()`
+<pre><code>
+new(BaseLayout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+</code></pre>
+<br />
+
+Equivalent to [`new(BaseLayout, [])`](#new-2).
 
 <a name="new-2"></a>
 
 ### new/2 ###
 
-`new(BaseLayout, Options) -> any()`
+<pre><code>
+new(BaseLayout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, Options) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+</code></pre>
+
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {max_width, pos_integer() | infinity} | {max_depth, pos_integer() | infinity} | {max_size, pos_integer() | infinity}</code></li></ul>
 

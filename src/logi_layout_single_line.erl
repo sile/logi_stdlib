@@ -1,18 +1,16 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A raw layout
+%% @doc TODO
 %%
 %% TODO: doc
-%%
-%% TODO: `Data'がiodata()であることを保証するのは利用者側の責任
--module(logi_layout_raw).
+-module(logi_layout_single_line).
 
 -behaviour(logi_layout).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/0]).
+-export([new/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback API
@@ -23,11 +21,16 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a new layout instance
--spec new() -> logi_layout:layout().
-new() -> logi_layout:new(?MODULE).
+-spec new(logi_layout:layout()) -> logi_layout:layout().
+new(BaseLayout) ->
+    _ = logi_layout:is_layout(BaseLayout) orelse error(badarg, [BaseLayout]),
+    logi_layout:new(?MODULE, BaseLayout).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-format(_Context, _Format, Data, _) -> Data.
+format(Context, Format, Data, Layout) ->
+    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+    re:replace(FormattedData, "(\r|\n|\r\n)\\s*", "", [global, multiline]).
+    %% TODO: delete: re:replace(FormattedData, "(\r|\n|\r\n)\\s*(.)", "\\2", [global, multiline]).

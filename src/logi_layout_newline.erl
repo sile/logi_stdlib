@@ -1,18 +1,17 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A raw layout
+%% @doc TODO
 %%
 %% TODO: doc
-%%
-%% TODO: `Data'がiodata()であることを保証するのは利用者側の責任
--module(logi_layout_raw).
+-module(logi_layout_newline).
 
 -behaviour(logi_layout).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/0]).
+-export([new/1, new/2]).
+-export_type([style/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback API
@@ -20,14 +19,31 @@
 -export([format/4]).
 
 %%----------------------------------------------------------------------------------------------------------------------
+%% Types
+%%----------------------------------------------------------------------------------------------------------------------
+-type style() :: lf | cr | crlf.
+
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
+%% @equiv new(BaseLayout, lf)
+-spec new(logi_layout:layout()) -> logi_layout:layout().
+new(BaseLayout) -> new(BaseLayout, lf).
+
 %% @doc Creates a new layout instance
--spec new() -> logi_layout:layout().
-new() -> logi_layout:new(?MODULE).
+-spec new(logi_layout:layout(), style()) -> logi_layout:layout().
+new(BaseLayout, Style) ->
+    _ = logi_layout:is_layout(BaseLayout) orelse error(badarg, [BaseLayout, Style]),
+    _ = lists:member(Style, [lf, cr, crlf]) orelse error(badarg, [BaseLayout, Style]),
+    case Style of
+        lf -> logi_layout:new(?MODULE, BaseLayout);
+        _  -> logi_layout:new(?MODULE, {BaseLayout, Style})
+    end.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-format(_Context, _Format, Data, _) -> Data.
+format(Context, Format, Data, {Layout, cr})   -> [logi_layout:format(Context, Format, Data, Layout), $\r];
+format(Context, Format, Data, {Layout, crlf}) -> [logi_layout:format(Context, Format, Data, Layout), $\r, $\n];
+format(Context, Format, Data, Layout)         -> [logi_layout:format(Context, Format, Data, Layout), $\n].
