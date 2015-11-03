@@ -26,7 +26,7 @@ format_test_() ->
               Location = logi_location:new(c:pid(0,0,0), app, mod, 'fun', 10),
               Context = logi_context:new(test_log, Timestamp, info, Location, #{key => val}, #{}),
               Layout = logi_layout_default:new(),
-              ?assertEqual("1970-01-02 00:00:00.000 [info] nonode@nohost <0.0.0> mod:fun:10 [key=val] hello world",
-                           lists:flatten(logi_layout:format(Context, "hello ~s", [world], Layout)))
+              ?assertEqual(<<"1970-01-02 00:00:00.000 [info] nonode@nohost <0.0.0> mod:fun:10 [key=val] hello world">>,
+                           logi_layout:format(Context, "hello ~s", [world], Layout))
       end}
     ].

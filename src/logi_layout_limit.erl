@@ -27,7 +27,7 @@
         {
           base_layout       :: logi_layout:layout(),
           max_width = 512   :: pos_integer() | infinity,
-          max_depth = 8     :: pos_integer() | infinity,
+          max_depth = 8     :: pos_integer() | infinity, % TODO: リストは対象から外しても良いかも？(ヒューリスティック)
           max_size  = 10240 :: pos_integer() | infinity
         }).
 

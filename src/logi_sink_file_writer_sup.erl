@@ -26,10 +26,10 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc Starts a new child process
--spec start_child(logi_sink_file:writer_id(), logi_sink_file_path:path()) -> {ok, pid()} | {error, Reason::term()}.
-start_child(WriterId, PathGen) ->
+-spec start_child(logi_sink_file:writer_id(), logi_sink_file_writer:start_arg()) -> {ok, pid()} | {error, Reason::term()}.
+start_child(WriterId, Arg) ->
     Child =
-        {WriterId, {logi_sink_file_writer, start_link, [WriterId, PathGen]}, permanent, 5000, worker, [logi_sink_file_writer]},
+        {WriterId, {logi_sink_file_writer, start_link, [WriterId, Arg]}, permanent, 5000, worker, [logi_sink_file_writer]},
     supervisor:start_child(?MODULE, Child).
 
 %% @doc Stops the child process

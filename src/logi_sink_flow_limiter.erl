@@ -80,7 +80,7 @@ new(Limiter, Destination, BaseSink) ->
 %% @private
 write(Context, Layout, Format, Data, State) ->
     case get_pid(State#?STATE.destination) of
-        undefined      -> ok;
+        undefined      -> ok; % TODO: notify_omission(destination_does_not_exist)
         DestinationPid ->
             case is_message_queue_len_overflowed(DestinationPid, State) of
                 true  -> notify_omission(message_queue_overflow, Context, State);

@@ -29,19 +29,21 @@ new() -> logi_layout:new(?MODULE).
 -spec format(logi_context:context(), io:format(), logi_layout:data(), undefined) -> iodata().
 format(Context, Format, Data, _) ->
     Location = logi_context:get_location(Context),
-    io_lib:format(
-      "~s [~s] ~p ~p ~s:~s:~p [~s] " ++ Format,
-      [
-       format_timestamp(logi_context:get_timestamp(Context)),
-       logi_context:get_severity(Context),
-       node(logi_location:get_process(Location)),
-       logi_location:get_process(Location),
-       logi_location:get_module(Location),
-       logi_location:get_function(Location),
-       logi_location:get_line(Location),
-       format_headers(logi_context:get_headers(Context)) |
-       Data
-      ]).
+    FormattedData =
+        io_lib:format(
+          "~s [~s] ~p ~p ~s:~s:~p [~s] " ++ Format,
+          [
+           format_timestamp(logi_context:get_timestamp(Context)),
+           logi_context:get_severity(Context),
+           node(logi_location:get_process(Location)),
+           logi_location:get_process(Location),
+           logi_location:get_module(Location),
+           logi_location:get_function(Location),
+           logi_location:get_line(Location),
+           format_headers(logi_context:get_headers(Context)) |
+           Data
+          ]),
+    unicode:characters_to_binary(FormattedData). % TODO: optimize
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

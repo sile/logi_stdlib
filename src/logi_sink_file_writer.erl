@@ -1,6 +1,6 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc ログメッセージのファイルへの書き込みを行うためのプロセス
 %% @private
 -module(logi_sink_file_writer).
 
@@ -11,32 +11,40 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/2, write/2]).
 
+-export_type([start_arg/0]).
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% Macros & Records
+%% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--define(REOPEN_INTERVAL, 60 * 1000). % TODO: option
+-define(FILE_EXISTENCE_CHECK_INTERVAL, (10 * 1000)).
 
 -define(STATE, ?MODULE).
 
 -record(?STATE,
         {
-          fd   :: file:fd(),
-          path :: logi_sink_file_path:path()
+          fd               :: file:fd(),
+          base_filepath    :: logi_sink_file:filepath(),
+          current_filepath :: logi_sink_file:filepath(),
+          rotator          :: logi_sink_file_rotator:rotator(),
+          open_options     :: logi_sink_file:open_options()
         }).
+
+-type start_arg() :: {logi_sink_file:filepath(), logi:logger(), logi_sink_file_rotator:rotator(), logi_sink_file:open_options()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% TODO: doc
--spec start_link(logi_sink_file:writer_id(), logi_sink_file_path:path()) -> {ok, pid()} | {error, Reason::term()}.
-start_link(WriterId, PathGen) ->
-    gen_server:start_link({local, WriterId}, ?MODULE, [PathGen], []).
+%% @doc Starts a new file writer
+-spec start_link(logi_sink_file:writer_id(), start_arg()) -> {ok, pid()} | {error, Reason::term()}.
+start_link(WriterId, Arg) ->
+    gen_server:start_link({local, WriterId}, ?MODULE, [WriterId, Arg], []).
 
+%% @doc Writes a log message
 -spec write(logi_sink_file:writer_id(), iodata()) -> ok.
 write(WriterId, Message) ->
     gen_server:cast(WriterId, {write, Message}).
@@ -45,53 +53,44 @@ write(WriterId, Message) ->
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init([PathGen00]) ->
-    PathGen0 = logi_sink_file_path:init(PathGen00),
-    case open_file(PathGen0) of
-        {error, Reason}    -> {stop, Reason};
-        {ok, Fd, PathGen1} ->
+init(Args = [WriterId, {BaseFilePath, Logger, Rotator0, OpenOptions}]) ->
+    _ = logi:save_as_default(Logger),
+    _ = logi:set_headers(#{id => WriterId}),
+    _ = logi:debug("Init: args=~p", [Args]),
+    case open_new_file(BaseFilePath, Rotator0, OpenOptions) of
+        {error, Reason} ->
+            _ = logi:alert("Can't open a log file: reason=~p", [Reason]),
+            {stop, Reason};
+        {ok, Fd, CurrentFilePath, Rotator1} ->
+            _ = logi:info("Started: filepath=~s, rotator=~p", [CurrentFilePath, Rotator1]),
             State =
                 #?STATE{
-                    fd   = Fd,
-                    path = PathGen1
+                    fd               = Fd,
+                    base_filepath    = BaseFilePath,
+                    current_filepath = CurrentFilePath,
+                    rotator          = Rotator1,
+                    open_options     = OpenOptions
                    },
-            ok = schedule_reopen(),
+            ok = schedule_file_existence_check(),
+            ok = schedule_rotation_check(0),
             {ok, State}
     end.
 
 %% @private
-handle_call(_Request, _From, State) ->
-    {noreply, State}.
+handle_call(_Request, _From, State) -> {noreply, State}.
 
 %% @private
-handle_cast({write, Arg}, State) ->
-    handle_write(Arg, State);
-handle_cast(_Request, State) ->
-    {noreply, State}.
+handle_cast({write, Arg}, State) -> handle_write(Arg, State);
+handle_cast(_Request, State)     -> {noreply, State}.
 
 %% @private
-handle_info(reopen, State0) ->
-    case reopen_file(State0) of
-        {error, Reason} -> {stop, Reason, State0};
-        {ok, State1}    ->
-            ok = schedule_reopen(),
-            {noreply, State1}
-    end;
-handle_info(Info, State) ->
-    case logi_sink_file_path:handle_info(Info, State#?STATE.path) of
-        ignore            -> {noreply, State};
-        {error, Reason}   -> {stop, Reason, State};
-        {ok, false, Path} -> {noreply, State#?STATE{path = Path}};
-        {ok, true,  Path} ->
-            State1 = State#?STATE{path = Path},
-            case reopen_file(State1) of
-                {error, Reason} -> {stop, Reason, State1};
-                {ok, State2}    -> {noreply, State2}
-            end
-    end.
+handle_info(file_existence_check, State) -> handle_file_existence_check(State);
+handle_info(rotation_check,       State) -> handle_rotation_check(State);
+handle_info(_Info,                State) -> {noreply, State}.
 
 %% @private
-terminate(_Reason, _State) ->
+terminate(Reason, _State) ->
+    _ = logi:info("Terminated: reason=~p", [Reason]),
     ok.
 
 %% @private
@@ -101,39 +100,118 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec schedule_reopen() -> ok.
-schedule_reopen() ->
-    _ = erlang:send_after(?REOPEN_INTERVAL, self(), reopen), % TODO: add tag
+-spec schedule_file_existence_check() -> ok.
+schedule_file_existence_check() ->
+    _ = erlang:send_after(?FILE_EXISTENCE_CHECK_INTERVAL, self(), file_existence_check),
     ok.
 
--spec reopen_file(#?STATE{}) -> {ok, #?STATE{}} | {error, Reason::term()}.
-reopen_file(State) ->
-    ok = file:close(State#?STATE.fd),
-    case open_file(State#?STATE.path) of
-        {error, Reason}   -> {error, Reason};
-        {ok, Fd, PathGen} -> {ok, State#?STATE{fd = Fd, path = PathGen}}
-    end.
-
--spec open_file(logi_sink_file_path:path()) -> {ok, file:fd(), logi_sink_file_path:path()} | {error, Reason::term()}.
-open_file(PathGen0) ->
-    case logi_sink_file_path:next_path(PathGen0) of
-        {error, Reason}      -> {error, Reason};
-        {ok, Path, PathGen1} ->
-            case filelib:ensure_dir(Path) of
-                {error, Reason} -> {error, {cannot_mkdir, Path, Reason}};
-                ok              ->
-                    %% TODO: customizable file options
-                    case file:open(Path, [append, raw, delayed_write, binary]) of
-                        {error, Reason} -> {error, {cannot_open_file, Path, Reason}};
-                        {ok, Fd}        -> {ok, Fd, PathGen1}
-                    end
-            end
-    end.
+-spec schedule_rotation_check(timeout()) -> ok.
+schedule_rotation_check(infinity) ->
+    ok;
+schedule_rotation_check(Time) ->
+    _ = erlang:send_after(Time, self(), rotation_check),
+    ok.
 
 -spec handle_write(iodata(), #?STATE{}) -> {noreply, #?STATE{}} | {stop, Reason::term(), #?STATE{}}.
 handle_write(Message, State) ->
-    %% TODO: correct handling of abnormal cases (ex. diskfull)
     case file:write(State#?STATE.fd, Message) of
-        {error, Reason} -> {stop, {cannot_write_file, Reason}, State};
-        ok              -> {noreply, State}
+        ok              -> {noreply, State};
+        {error, Reason} ->
+            _ = logi:alert("Can't write log messages: file=~s, reason=~p", [State#?STATE.current_filepath, Reason]),
+            {stop, {Reason, {file, write, [State#?STATE.fd, Message]}}, State}
+    end.
+
+-spec handle_file_existence_check(#?STATE{}) -> {noreply, #?STATE{}} | {stop, Reason::term(), #?STATE{}}.
+handle_file_existence_check(State0 = #?STATE{current_filepath = FilePath}) ->
+    Result =
+        case filelib:is_regular(FilePath) of
+            true  -> {noreply, State0};
+            false ->
+                _ = logi:info("The log file is missing: file=~s", [FilePath]),
+                case reopen_current_file(State0) of
+                    {error, Reason} ->
+                        _ = logi:alert("Can't reopen the log file: file=~s, reason=~p", [FilePath, Reason]),
+                        {stop, Reason, State0};
+                    {ok, State1}    ->
+                        _ = logi:info("The log file is reopened: file=~s", [FilePath]),
+                        {noreply, State1}
+                end
+        end,
+    ok = schedule_file_existence_check(),
+    Result.
+
+-spec handle_rotation_check(#?STATE{}) -> {noreply, #?STATE{}} | {stop, Reason::term(), #?STATE{}}.
+handle_rotation_check(State0 = #?STATE{current_filepath = FilePath}) ->
+    {IsOutdated, NextCheckTime, Rotator} =
+        logi_sink_file_rotator:is_outdated(FilePath, State0#?STATE.rotator),
+    Result =
+        case IsOutdated of
+            false -> {noreply, State0#?STATE{rotator = Rotator}};
+            true  ->
+                _ = logi:info("The log file is outdated: file=~s", [FilePath]),
+                case rotate_and_reopen_file(State0) of
+                    {error, Reason} ->
+                        _ = logi:alert("Can't reopen an up-to-date log file: reason=~p", [Reason]),
+                        {stop, Reason, State0};
+                    {ok, RotatedFilePath, State1} ->
+                        _ = RotatedFilePath =:= FilePath orelse
+                            logi:info("The old log file is rotated: from=~p, to=~p", [FilePath, RotatedFilePath]),
+                        _ = logi:info("A new log file is opened: file=~s", [State1#?STATE.current_filepath]),
+                        {noreply, State1}
+                end
+        end,
+    ok = schedule_rotation_check(NextCheckTime),
+    Result.
+
+-spec open_file(logi_sink_file:filepath(), logi_sink_file:open_options()) -> {ok, file:fd()} | {error, Reason::term()}.
+open_file(FilePath, Options) ->
+    case filelib:ensure_dir(FilePath) of
+        {error, Reason} -> {error, {Reason, {filelib, ensure_dir, [FilePath]}}};
+        ok              ->
+            case file:open(FilePath, Options) of
+                {error, Reason} -> {error, {Reason, {file, open, [FilePath, Options]}}};
+                {ok, Fd}        -> {ok, Fd}
+            end
+    end.
+
+-spec open_new_file(logi_sink_file:filepath(), logi_sink_file_rotator:rotator(), logi_sink_file:open_options()) ->
+                           {ok, file:fd(), logi_sink_file:filepath(), logi_sink_file_rotator:rotator()} | {error, Reason::term()}.
+open_new_file(BaseFilePath, Rotator0, OpenOptions) ->
+    case logi_sink_file_rotator:get_current_filepath(BaseFilePath, Rotator0) of
+        {error, Reason} ->
+            {stop, {Reason, {logi_sink_file_rotator, get_current_filepath, [BaseFilePath, Rotator0]}}};
+        {ok, FilePath, Rotator1} ->
+            case open_file(FilePath, OpenOptions) of
+                {error, Reason} -> {error, Reason};
+                {ok, Fd}        -> {ok, Fd, FilePath, Rotator1}
+            end
+    end.
+
+-spec reopen_current_file(#?STATE{}) -> {ok, #?STATE{}} | {error, Reason::term()}.
+reopen_current_file(State) ->
+    case file:close(State#?STATE.fd) of
+        {error, Reason} -> {error, {Reason, {file, close, [State#?STATE.fd]}}};
+        ok              ->
+            case open_file(State#?STATE.current_filepath, State#?STATE.open_options) of
+                {error, Reason} -> {error, Reason};
+                {ok, Fd}        -> {ok, State#?STATE{fd = Fd}}
+            end
+    end.
+
+-spec rotate_and_reopen_file(#?STATE{}) -> {ok, logi_sink_file:filepath(), #?STATE{}} | {error, Reason::term()}.
+rotate_and_reopen_file(State0 = #?STATE{current_filepath = OldFilePath, base_filepath = BaseFilePath}) ->
+    case file:close(State0#?STATE.fd) of
+        {error, Reason} -> {error, {Reason, {file, close, [State0#?STATE.fd]}}};
+        ok              ->
+            case logi_sink_file_rotator:rotate(OldFilePath, State0#?STATE.rotator) of
+                {error, Reason} ->
+                    {error, {Reason, {logi_sink_file_rotator, rotate, [OldFilePath, State0#?STATE.rotator]}}};
+                {ok, RotatedFilePath, Rotator0} ->
+                    case open_new_file(BaseFilePath, Rotator0, State0#?STATE.open_options) of
+                        {error, Reason}                 -> {error, Reason};
+                        {ok, Fd, NewFilePath, Rotator1} ->
+                            State1 = #?STATE{fd = Fd, current_filepath = NewFilePath, rotator = Rotator1},
+                            {ok, RotatedFilePath, State1}
+                    end
+            end
     end.
