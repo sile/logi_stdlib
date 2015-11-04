@@ -1,13 +1,20 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% TODO: logi_layout_raw
+%% @doc ログの出力量を制御するためのシンク
 %%
-%% TODO: doc
+%% このシンクはログ出力の際に、以下の判定を行う:
+%% - ログの書き込み先プロセスが生きているか
+%% - ログの書き込み先プロセスのメッセージキューが詰まっていないか
+%% - ログの出力ペースが指定の範囲内に収まっているか
 %%
-%% TODO: sinkを連鎖するのはいろいろと不自然なので、別の形にしたい
+%% いずれかの条件を満たさなかった場合は、そのログメッセージは破棄される。
+%% (破棄されたメッセージが存在する場合は、一定期間毎にまとめて、レポートが出力される)
 %%
-%% - message_queue_len
-%% - bps
+%% 全ての条件を満たしている場合は、実際のログ出力処理を担っているシンクに後続の処理が委譲される。
+%%
+%% == EXAMPLE ==
+%%
+%% TODO
 -module(logi_sink_flow_limiter).
 
 -behaviour(logi_sink).
@@ -15,11 +22,15 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([start_limiter/1, stop_limiter/1]).
--export([new/3]).
+-export([start_limiter/1, start_limiter/2]).
+-export([stop_limiter/1]).
+-export([which_limiters/0]).
+
+-export([new/2]).
 
 -export_type([id/0]).
 -export_type([options/0]).
+-export_type([destination/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
@@ -37,48 +48,73 @@
           sink                  :: logi_sink:sink(),
           destination           :: pid() | atom(),
           max_message_queue_len :: pos_integer(),
-          max_bitrate           :: pos_integer(),
-          period                :: timeout()
+          max_bitrate           :: pos_integer()
         }).
 
 -type id() :: atom().
+%% The identifier of a limiter
+
 -type options() :: Todo::term().
+
+-type destination() :: pid() | atom().
+%% ログメッセージの実際の書き込み先プロセス (or その名前)
+%%
+%% このプロセスが死活判定やメッセージキュー詰まり判定の対象となる
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec start_limiter(id()) -> {ok, pid()} | {error, Reason::term()}. % XXX: pid() is returned for debugging purposes only
+%% @equiv start_limiter(Id, [])
+-spec start_limiter(id()) -> {ok, pid()} | {error, Reason::term()}.
 start_limiter(Id) ->
-    logi_sink_flow_limiter_server_sup:start_child(Id, []).
+    start_limiter(Id, []).
 
+%% @doc Starts a new limiter
+-spec start_limiter(id(), options()) -> {ok, pid()} | {error, Reason::term()}.
+start_limiter(Id, Options) ->
+    %% TODO: validate
+    logi_sink_flow_limiter_server_sup:start_child(Id, Options).
+
+%% @doc Stops the limiter
+%%
+%% If the limiter associated to `Id' does not exists, it is silently ignored.
 -spec stop_limiter(id()) -> ok.
 stop_limiter(Id) ->
     logi_sink_flow_limiter_server_sup:stop_child(Id).
 
+%% @doc Returns a list of the running limiters
+-spec which_limiters() -> [id()].
+which_limiters() ->
+    [Id || {Id, _} <- logi_sink_flow_limiter_server_sup:which_children()].
+
 %% @doc Creates a new sink instance
 %%
 %% The default layout of the sink is `logi_sink:default_layout(BaseSink)'.
--spec new(id(), pid()|atom(), logi_sink:sink()) -> logi_sink:sink().
-new(Limiter, Destination, BaseSink) ->
-    _ = is_atom(Limiter) orelse error(badarg, [Limiter, Destination, BaseSink]),
-    _ = is_atom(Destination) orelse is_pid(Destination) orelse error(badarg, [Limiter, Destination, BaseSink]),
-    _ = logi_sink:is_sink(BaseSink) orelse error(badarg, [Limiter, Destination, BaseSink]),
-    State =
-        #?STATE{
-            limiter = Limiter,
-            sink = BaseSink,
-            destination = Destination,
-            max_message_queue_len = 10,
-            max_bitrate = 1024 * 8,
-            period = 1000
-           },
-    logi_sink:new(?MODULE, State).
+-spec new(id(), logi_sink:sink()) -> logi_sink:sink().
+new(Limiter, BaseSink) ->
+    _ = is_atom(Limiter) orelse error(badarg, [Limiter, BaseSink]),
+    _ = logi_sink:is_sink(BaseSink) orelse error(badarg, [Limiter, BaseSink]),
+    logi_sink:new(?MODULE, {Limiter, BaseSink}).
+%% State =
+%%         #?STATE{
+%%             limiter = Limiter,
+%%             sink = BaseSink,
+%%             destination = Destination,
+%%             max_message_queue_len = 10,
+%%             max_bitrate = 1024 * 8
+%%            },
+%%     logi_sink:new(?MODULE, State).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Layout, Format, Data, State) ->
+write(Context, Layout, Format, Data, {Limiter, BaseSink}) ->
+    case logi_sink_flow_limiter_server:get_destination_status(Limiter) of
+        dead           -> notify_omission(destination_is_dead, Context, Limiter);
+        queue_overflow -> notify_omission(message_queue_overflow, Context, Limiter);
+        normal         ->
+
     case get_pid(State#?STATE.destination) of
         undefined      -> ok; % TODO: notify_omission(destination_does_not_exist)
         DestinationPid ->

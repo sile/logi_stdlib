@@ -28,6 +28,15 @@
 
 -define(STATE, ?MODULE).
 
+%% -record(?STATE,
+%%         {
+%%           limiter               :: id(),
+%%           sink                  :: logi_sink:sink(),
+%%           destination           :: pid() | atom(),
+%%           max_message_queue_len :: pos_integer(),
+%%           max_bitrate           :: pos_integer()
+%%         }).
+
 -record(?STATE,
         {
           table  :: ets:tid(),
