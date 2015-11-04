@@ -33,7 +33,6 @@ format_test_() ->
       fun () ->
               Layout = logi_layout_color:new(logi_layout_raw:new()),
               ?assertEqual(<<"\e[0mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(debug), "", ["hello"], Layout))),
-              ?assertEqual(<<"\e[0mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(verbose), "", ["hello"], Layout))),
               ?assertEqual(<<"\e[1mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(info), "", ["hello"], Layout))),
               ?assertEqual(<<"\e[1;35mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(notice), "", ["hello"], Layout))),
               ?assertEqual(<<"\e[1;33mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(warning), "", ["hello"], Layout))),
@@ -42,15 +41,6 @@ format_test_() ->
               ?assertEqual(<<"\e[1;7;31mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(alert), "", ["hello"], Layout))),
               ?assertEqual(<<"\e[1;7;31mhello\e[0m">>, iolist_to_binary(logi_layout:format(C(emergency), "", ["hello"], Layout)))
       end},
-     %% TODO: delete
-     %% {"Formats log messages: newline handling",
-     %%  fun () ->
-     %%          Layout = logi_layout_color:new(logi_layout_raw:new()),
-     %%          ?assertEqual(<<"\e[0mhello\e[0m">>,     iolist_to_binary(logi_layout:format(C(debug), "", ["hello"], Layout))),
-     %%          ?assertEqual(<<"\e[0mhello\e[0m\r">>,   iolist_to_binary(logi_layout:format(C(debug), "", ["hello\r"], Layout))),
-     %%          ?assertEqual(<<"\e[0mhello\e[0m\n">>,   iolist_to_binary(logi_layout:format(C(debug), "", ["hello\n"], Layout))),
-     %%          ?assertEqual(<<"\e[0mhello\e[0m\r\n">>, iolist_to_binary(logi_layout:format(C(debug), "", ["hello\r\n"], Layout)))
-     %%  end},
      {"Custom color",
       fun () ->
               Color = fun (_) -> "\e[1m" end,

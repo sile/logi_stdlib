@@ -33,7 +33,6 @@ filter_test_() ->
       fun () ->
               Filter = logi_filter_severity:new(notice),
               ?assertNot(logi_filter:apply(Context(debug), Filter)),
-              ?assertNot(logi_filter:apply(Context(verbose), Filter)),
               ?assertNot(logi_filter:apply(Context(info), Filter)),
               ?assert(logi_filter:apply(Context(notice), Filter)),
               ?assert(logi_filter:apply(Context(warning), Filter)),
@@ -46,7 +45,6 @@ filter_test_() ->
       fun () ->
               Filter = logi_filter_severity:new({info, error}),
               ?assertNot(logi_filter:apply(Context(debug), Filter)),
-              ?assertNot(logi_filter:apply(Context(verbose), Filter)),
               ?assert(logi_filter:apply(Context(info), Filter)),
               ?assert(logi_filter:apply(Context(notice), Filter)),
               ?assert(logi_filter:apply(Context(warning), Filter)),
@@ -59,7 +57,6 @@ filter_test_() ->
       fun () ->
               Filter = logi_filter_severity:new([info, error, alert]),
               ?assertNot(logi_filter:apply(Context(debug), Filter)),
-              ?assertNot(logi_filter:apply(Context(verbose), Filter)),
               ?assert(logi_filter:apply(Context(info), Filter)),
               ?assertNot(logi_filter:apply(Context(notice), Filter)),
               ?assertNot(logi_filter:apply(Context(warning), Filter)),

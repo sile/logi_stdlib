@@ -42,7 +42,6 @@ new(BaseLayout, Color) ->
 default_color(Context) ->
     case logi_context:get_severity(Context) of
         debug     -> "\e[0m";
-        verbose   -> "\e[0m";
         info      -> "\e[1m";
         notice    -> "\e[1;35m";
         warning   -> "\e[1;33m";
