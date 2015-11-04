@@ -92,6 +92,8 @@
 %% ログメッセージの実際の書き込み先プロセス (or その名前)
 %%
 %% このプロセスが死活判定やメッセージキュー詰まり判定の対象となる
+%%
+%% TODO: Support `via' format name
 
 -type write_rate() :: {Bytes::non_neg_integer(), Period::pos_integer()}. % TODO: Period::pos_milliseconds()
 %% ログメッセージの書き込みレートの上限指定
@@ -159,7 +161,7 @@ write(Context, Layout, Format, Data, {Limiter, BaseSink}) ->
                     FormattedData = logi_layout:format(Context, Format, Data, Layout),
                     ok = logi_sink_flow_limiter_server:notify_write(Limiter, iolist_size(FormattedData)),
                     RawDataLayout = logi_layout:unsafe_new(logi_layout_raw, undefined),
-                    (logi_sink:get_module(BaseSink)):write(Context, RawDataLayout, "", FormattedData, logi_sink:get_extra_data(BaseSink))
+                    logi_sink:write(Context, RawDataLayout, "", FormattedData, BaseSink)
             end
     end.
 

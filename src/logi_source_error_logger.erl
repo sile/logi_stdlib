@@ -5,8 +5,6 @@
 
 -behaviour(gen_event).
 
--compile({parse_transform, logi_transform}).
-
 -export([install/0, install/1]).
 -export([uninstall/0]).
 

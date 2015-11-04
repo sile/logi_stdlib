@@ -13,7 +13,16 @@ NOTE: headers is not limited
 
 __Behaviours:__ [`logi_layout`](logi_layout.md).
 
-<a name="index"></a>
+<a name="description"></a>
+
+## Description ##
+memo:
+以下くらいがちょうど良いかも:
+- 文字列系の長さ上限
+- データ構造系(タプル、マップ、etc)の幅上限
+- レベル順探索に基づく要素数上限
+- 単なるレベル順ではなく、各子ども毎に探索数がバランスすると良いかも
+- 横に長い子と縦に長い子の間で、不平等が生じにくくするため<a name="index"></a>
 
 ## Function Index ##
 

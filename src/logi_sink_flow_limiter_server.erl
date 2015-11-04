@@ -6,8 +6,6 @@
 %% TODO: 全体的に整理
 -module(logi_sink_flow_limiter_server).
 
--compile({parse_transform, logi_transform}).
-
 -behaviour(gen_server).
 
 %%----------------------------------------------------------------------------------------------------------------------

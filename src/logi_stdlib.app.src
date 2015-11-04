@@ -5,6 +5,7 @@
   {registered,
    [
     logi_stdlib_sup,
+    logi_sink_ha_manager_sup,
     logi_sink_file_writer_sup,
     logi_sink_flow_limiter_server_sup
    ]},
@@ -13,7 +14,6 @@
    [
     kernel,
     stdlib,
-    inets,
     logi
    ]},
   {env,[]}
