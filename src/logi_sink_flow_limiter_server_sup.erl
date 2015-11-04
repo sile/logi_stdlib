@@ -26,10 +26,11 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc Starts a new child process
--spec start_child(logi_sink_flow_limiter:id(), logi_sink_flow_limiter:options()) -> {ok, pid()} | {error, Reason::term()}.
-start_child(LimiterId, Options) ->
+-spec start_child(logi_sink_flow_limiter:id(), logi_sink_flow_limiter_server:start_arg()) ->
+                         {ok, pid()} | {error, Reason::term()}.
+start_child(LimiterId, Arg) ->
     Child =
-        {LimiterId, {logi_sink_flow_limiter_server, start_link, [LimiterId, Options]}, permanent, 5000, worker,
+        {LimiterId, {logi_sink_flow_limiter_server, start_link, [LimiterId, Arg]}, permanent, 5000, worker,
          [logi_sink_flow_limiter_server]},
     supervisor:start_child(?MODULE, Child).
 
