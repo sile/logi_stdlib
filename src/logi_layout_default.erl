@@ -57,26 +57,9 @@ format_timestamp(Timestamp) ->
     io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.~3..0B",
                   [Year, Month, Day, Hour, Minute, Second, Millis]).
 
-%% TODO: logi_lib_layout:format_map/1
 -spec format_headers(logi:headers()) -> iodata().
 format_headers(Headers) ->
-    string:join([[atom_to_list(K),"=",to_string(V)] || {K, V} <- maps:to_list(Headers)], ",").
-
-%% TODO: logi_lib_layout:to_string/1
--spec to_string(term()) -> iodata().
-to_string(V) when is_binary(V)    -> binary_to_list(V);
-to_string(V) when is_atom(V)      -> atom_to_list(V);
-to_string(V) when is_integer(V)   -> integer_to_list(V);
-to_string(V) when is_float(V)     -> float_to_list(V);
-to_string(V) when is_function(V)  -> erlang:fun_to_list(V);
-to_string(V) when is_pid(V)       -> erlang:pid_to_list(V);
-to_string(V) when is_port(V)      -> erlang:port_to_list(V);
-to_string(V) when is_reference(V) -> erlang:ref_to_list(V);
-to_string(V) when is_list(V)      ->
-    IsChar = fun (C) -> is_integer(C) andalso 0 =< C andalso C =< 16#10ffff end,
-    case lists:all(IsChar, V) of
-        true  -> V;
-        false -> io_lib:format("~1000000p", [V])
-    end;
-to_string(V) ->
-    io_lib:format("~1000000p", [V]).
+    string:join(
+      [
+       [logi_lib_layout:term_to_iodata(K), "=", logi_lib_layout:term_to_iodata(V)] || {K, V} <- maps:to_list(Headers)
+      ], ",").
