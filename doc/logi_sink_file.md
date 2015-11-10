@@ -126,7 +126,8 @@ writer_options() = [<a href="#type-writer_option">writer_option()</a>]
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#start_writer-2">start_writer/2</a></td><td>Equivalent to <a href="#start_writer-3"><tt>start_writer(WriterId, FilePath, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#start_writer-3">start_writer/3</a></td><td>Starts a new file writer.</td></tr><tr><td valign="top"><a href="#stop_writer-1">stop_writer/1</a></td><td>Stops the file writer.</td></tr><tr><td valign="top"><a href="#which_writers-0">which_writers/0</a></td><td>Returns a list of the running file writers.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Writer,
+logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())))</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#start_writer-2">start_writer/2</a></td><td>Equivalent to <a href="#start_writer-3"><tt>start_writer(WriterId, FilePath, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#start_writer-3">start_writer/3</a></td><td>Starts a new file writer.</td></tr><tr><td valign="top"><a href="#stop_writer-1">stop_writer/1</a></td><td>Stops the file writer.</td></tr><tr><td valign="top"><a href="#which_writers-0">which_writers/0</a></td><td>Returns a list of the running file writers.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -142,10 +143,18 @@ new(Writer::<a href="#type-writer_id">writer_id()</a>) -&gt; <a href="logi_sink.
 </code></pre>
 <br />
 
-Creates a new sink instance
+Equivalent to [`new(Writer,logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())))`](#new-2).
 
-The default layout of the sink is
-`logi_layout_newline:new(logi_layout_limie:new(logi_layout_default:new()))`.
+<a name="new-2"></a>
+
+### new/2 ###
+
+<pre><code>
+new(Writer::<a href="#type-writer_id">writer_id()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout</a>(iodata())) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
+</code></pre>
+<br />
+
+Creates a new sink instance
 
 <a name="start_writer-2"></a>
 

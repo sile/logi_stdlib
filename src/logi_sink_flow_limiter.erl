@@ -58,7 +58,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5, default_layout/1]).
+-export([write/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -144,13 +144,13 @@ which_limiters() ->
 new(Limiter, BaseSink) ->
     _ = is_atom(Limiter) orelse error(badarg, [Limiter, BaseSink]),
     _ = logi_sink:is_sink(BaseSink) orelse error(badarg, [Limiter, BaseSink]),
-    logi_sink:new(?MODULE, {Limiter, BaseSink}).
+    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), {Limiter, BaseSink}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Layout, Format, Data, {Limiter, BaseSink}) ->
+write(Context, {Format, Data}, {Limiter, BaseSink}) ->
     case logi_sink_flow_limiter_server:get_destination_status(Limiter) of
         dead           -> logi_sink_flow_limiter_server:notify_omission(Limiter, destination_is_dead, Context);
         queue_overflow -> logi_sink_flow_limiter_server:notify_omission(Limiter, message_queue_overflow, Context);
@@ -158,16 +158,11 @@ write(Context, Layout, Format, Data, {Limiter, BaseSink}) ->
             case logi_sink_flow_limiter_server:is_rate_exceeded(Limiter) of
                 true  -> logi_sink_flow_limiter_server:notify_omission(Limiter, rate_exceeded, Context);
                 false ->
-                    FormattedData = logi_layout:format(Context, Format, Data, Layout),
-                    ok = logi_sink_flow_limiter_server:notify_write(Limiter, iolist_size(FormattedData)),
-                    RawDataLayout = logi_layout:unsafe_new(logi_layout_raw, undefined),
-                    logi_sink:write(Context, RawDataLayout, "", FormattedData, BaseSink)
+                    FormattedData = logi_layout:format(Context, Format, Data, logi_sink:get_layout(BaseSink)),
+                    ok = logi_sink_flow_limiter_server:notify_write(Limiter, data_size(FormattedData)),
+                    (logi_sink:get_module(BaseSink)):write(Context, FormattedData, logi_sink:get_extra_data(BaseSink))
             end
     end.
-
-%% @private
-default_layout({_, BaseSink}) ->
-    logi_sink:default_layout(BaseSink).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
@@ -175,3 +170,11 @@ default_layout({_, BaseSink}) ->
 -spec is_write_rate(write_rate() | term()) -> boolean().
 is_write_rate({Bytes, Period}) -> is_integer(Bytes) andalso Bytes >= 0 andalso is_integer(Period) andalso Period > 0;
 is_write_rate(_)               -> false.
+
+-spec data_size(term()) -> non_neg_integer().
+data_size(X) ->
+    try
+        iolist_size(X)
+    catch
+        _ -> erlang:external_size(X)
+    end.

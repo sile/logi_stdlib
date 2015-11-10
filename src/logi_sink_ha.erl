@@ -62,7 +62,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5, default_layout/1]).
+-export([write/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -105,18 +105,14 @@ which_managers() ->
 -spec new(manager_id()) -> logi_sink:sink().
 new(ManagerId) ->
     _ = is_atom(ManagerId) orelse error(badarg, [ManagerId]),
-    logi_sink:new(?MODULE, ManagerId).
+    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), ManagerId).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Layout, Format, Data, ManagerId) ->
-    logi_sink_ha_manager:write_to_available_destination(ManagerId, Context, Layout, Format, Data).
-
-%% @private
-default_layout(ManagerId) ->
-    logi_sink_ha_manager:get_default_layout(ManagerId).
+write(Context, {Format, Data}, ManagerId) ->
+    logi_sink_ha_manager:write_to_available_destination(ManagerId, Context, Format, Data).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

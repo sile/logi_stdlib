@@ -2,11 +2,7 @@
 %%
 %% @doc A raw layout
 %%
-%% TODO: logI_layout_raw_data(?)
-%%
-%% TODO: doc
-%%
-%% TODO: `Data'がiodata()であることを保証するのは利用者側の責任
+%% TODO: DELETE
 -module(logi_layout_raw).
 
 -behaviour(logi_layout).

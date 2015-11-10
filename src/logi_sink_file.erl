@@ -33,7 +33,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1]).
+-export([new/1, new/2]).
 
 -export([start_writer/2, start_writer/3]).
 -export([stop_writer/1]).
@@ -48,7 +48,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5, default_layout/1]).
+-export([write/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -87,14 +87,17 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Creates a new sink instance
-%%
-%% The default layout of the sink is
-%% `logi_layout_newline:new(logi_layout_limie:new(logi_layout_default:new()))'.
+%% @equiv new(Writer, logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())))
 -spec new(writer_id()) -> logi_sink:sink().
 new(Writer) ->
-    _ = is_atom(Writer) orelse error(bagarg, [Writer]),
-    logi_sink:new(?MODULE, Writer).
+    new(Writer, logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new()))).
+
+%% @doc Creates a new sink instance
+-spec new(writer_id(), logi_layout:layout(iodata())) -> logi_sink:sink().
+new(Writer, Layout) ->
+    _ = is_atom(Writer) orelse error(bagarg, [Writer, Layout]),
+    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Writer, Layout]),
+    logi_sink:new(?MODULE, Layout, Writer).
 
 %% @equiv start_writer(WriterId, FilePath, [])
 -spec start_writer(writer_id(), filepath()) -> {ok, pid()} | {error, Reason::term()}.
@@ -135,12 +138,5 @@ which_writers() ->
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Layout, Format, Data, Writer) ->
-    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+write(_Context, FormattedData, Writer) ->
     logi_sink_file_writer:write(Writer, FormattedData).
-
-%% @private
-default_layout(_Writer) ->
-    logi_layout_newline:new(
-      logi_layout_limit:new(
-        logi_layout_default:new())).

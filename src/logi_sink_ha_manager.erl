@@ -11,8 +11,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/2]).
--export([get_default_layout/1]).
--export([write_to_available_destination/5]).
+-export([write_to_available_destination/4]).
 
 -export_type([start_arg/0]).
 
@@ -45,18 +44,13 @@
 start_link(ManagerId, Arg) ->
     gen_server:start_link({local, ManagerId}, ?MODULE, [ManagerId, Arg], []).
 
-%% @doc Gets the default layout
--spec get_default_layout(logi_sink_ha:manager_id()) -> logi_layout:layout().
-get_default_layout(ManagerId) ->
-    gen_server:call(ManagerId, get_default_layout).
-
 %% @doc 利用可能な宛先にログメッセージを書き込む
 -spec write_to_available_destination(
-        logi_sink_ha:manager_id(), logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data()) -> any().
-write_to_available_destination(ManagerId, Context, Layout, Format, Data) ->
+        logi_sink_ha:manager_id(), logi_context:context(), io:format(), logi_layout:data()) -> any().
+write_to_available_destination(ManagerId, Context, Format, Data) ->
     case select_sink(ManagerId) of
         error      -> notify_omission(ManagerId, no_available_destination, Context);
-        {ok, Sink} -> logi_sink:write(Context, Layout, Format, Data, Sink)
+        {ok, Sink} -> logi_sink:write(Context, Format, Data, Sink)
     end.
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -83,9 +77,6 @@ init([ManagerId, {Destinations, Logger, Mode}]) ->
     {ok, State1}.
 
 %% @private
-handle_call(get_default_layout, _From, State) ->
-    Layout = logi_sink:default_layout(maps:get(sink, hd(maps:values(State#?STATE.destinations)))),
-    {reply, Layout, State};
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 

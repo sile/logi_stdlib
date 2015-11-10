@@ -27,34 +27,29 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/0]).
+-export([new/0, new/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5, default_layout/1]).
+-export([write/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
+%% @equiv new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))))
+new() ->
+    new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())))).
+
 %% @doc Creates a new sink instance
-%%
-%% The default layout of the sink is
-%% `logi_layout_newline:new(logi_layout_color:new(logi_layout_limie:new(logi_layout_default:new())))'.
--spec new() -> logi_sink:sink().
-new() -> logi_sink:new(?MODULE).
+-spec new(logi_layout:layout(unicode:chardata())) -> logi_sink:sink().
+new(Layout) ->
+    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Layout]),
+    logi_sink:new(?MODULE, Layout).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Layout, Format, Data, _) ->
-    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+write(_Context, FormattedData, _) ->
     io:put_chars(user, FormattedData).
-
-%% @private
-default_layout(_) ->
-    logi_layout_newline:new(
-      logi_layout_color:new(
-        logi_layout_limit:new(
-          logi_layout_default:new()))).

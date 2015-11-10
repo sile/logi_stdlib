@@ -46,7 +46,7 @@ __Behaviours:__ [`logi_sink`](logi_sink.md).
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Creates a new sink instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))))</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new sink instance.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -57,13 +57,18 @@ __Behaviours:__ [`logi_sink`](logi_sink.md).
 
 ### new/0 ###
 
+`new() -> any()`
+
+Equivalent to [`new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))))`](#new-1).
+
+<a name="new-1"></a>
+
+### new/1 ###
+
 <pre><code>
-new() -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
+new(Layout::<a href="logi_layout.md#type-layout">logi_layout:layout</a>(<a href="unicode.md#type-chardata">unicode:chardata()</a>)) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
 </code></pre>
 <br />
 
 Creates a new sink instance
-
-The default layout of the sink is
-`logi_layout_newline:new(logi_layout_color:new(logi_layout_limie:new(logi_layout_default:new())))`.
 
