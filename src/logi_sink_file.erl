@@ -34,6 +34,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1, new/2]).
+-export([new_with_agent/3]).
+-export([start_agent/4]).
 
 -export([start_writer/2, start_writer/3]).
 -export([stop_writer/1]).
@@ -98,6 +100,20 @@ new(Writer, Layout) ->
     _ = is_atom(Writer) orelse error(bagarg, [Writer, Layout]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Writer, Layout]),
     logi_sink:new(?MODULE, Layout, Writer).
+
+new_with_agent(WriterId, FilePath, Options) ->
+    Layout = logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())),
+    logi_sink:new(?MODULE, Layout, undefined, #{start => {?MODULE, start_agent, [WriterId, FilePath, Options]}}).
+
+start_agent(_, WriterId, FilePath, Options) ->
+    Logger = proplists:get_value(logger, Options, logi:default_logger()),
+    Rotator = proplists:get_value(rotator, Options, logi_sink_file_rotator_do_nothing:new()),
+    OpenOpt = proplists:get_value(open_opt, Options, [append, raw, delayed_write]),
+
+    case logi_sink_file_writer:start_link(WriterId, {FilePath, Logger, Rotator, OpenOpt}) of
+        {ok, Pid} -> {ok, Pid, WriterId};
+        Other     -> Other
+    end.
 
 %% @equiv start_writer(WriterId, FilePath, [])
 -spec start_writer(writer_id(), filepath()) -> {ok, pid()} | {error, Reason::term()}.
