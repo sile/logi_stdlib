@@ -2,13 +2,7 @@
 {application, logi_stdlib,
  [{description, "The Standard Library for logi"},
   {vsn, git},
-  {registered,
-   [
-    logi_stdlib_sup,
-    logi_sink_ha_manager_sup,
-    logi_sink_file_writer_sup,
-    logi_sink_flow_limiter_server_sup
-   ]},
+  {registered, [logi_stdlib_sup]},
   {mod, {logi_stdlib_app, []}},
   {applications,
    [

@@ -34,23 +34,18 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1, new/2]).
--export([new_with_agent/3]).
--export([start_agent/4]).
+-export([default_layout/0]).
 
--export([start_writer/2, start_writer/3]).
--export([stop_writer/1]).
--export([which_writers/0]).
-
--export_type([filepath/0]).
+-export_type([options/0, option/0]).
+-export_type([agent_option/0]).
 -export_type([open_options/0]).
-
--export_type([writer_id/0]).
--export_type([writer_options/0, writer_option/0]).
+-export_type([filepath/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([write/3]).
+-export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -58,20 +53,17 @@
 -type filepath() :: binary().
 %% A log file path
 
--type open_options() :: list().
-%% ログファイルのオープン時に指定するオプション群
-%%
-%% 詳細は[file:mode/0](http://www.erlang.org/doc/man/file.html#type-mode)のドキュメントを参照のこと
+-type options() :: [option()].
 
--type writer_id() :: atom().
-%% The identifier of a file writer
+-type option() :: {layout, logi_layout:layout()}
+                | {restart, logi_restart_strategy:strategy()}
+                | {shutdown, logi_agent:shutdown()}
+                | agent_option().
 
--type writer_options() :: [writer_option()].
-%% The default options are `[append, raw, delayed_write]' % TODO:
-
--type writer_option() :: {logger, logi:logger()}
-                       | {rotator, logi_sink_file_rotator:rotator()}
-                       | {open_opt, open_options()}.
+-type agent_option() :: {logger, logi:logger()}
+                      | {rotator, logi_sink_file_rotator:rotator()}
+                      | {open_opt, open_options()}
+                      | {name, logi_lib_proc:otp_name()}.
 %% `logger':
 %% - 起動したwriterのログの出力先
 %% - ディスクフル等によりファイル書き込み自体が行いない場合も、ここにログが出力されるので、`error'以上の深刻度のログメッセージは、信頼できる出力先に吐かれるようにしておくことが推奨される
@@ -86,73 +78,49 @@
 %% - ログファイルのオープン時に指定するオプション群
 %% - default: `[append, raw, delayed_write]'
 
+-type open_options() :: list().
+%% ログファイルのオープン時に指定するオプション群
+%%
+%% 詳細は[file:mode/0](http://www.erlang.org/doc/man/file.html#type-mode)のドキュメントを参照のこと
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(Writer, logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())))
--spec new(writer_id()) -> logi_sink:sink().
-new(Writer) ->
-    new(Writer, logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new()))).
+-spec default_layout() -> logi_layout:layout().
+default_layout() ->
+    logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())).
 
-%% @doc Creates a new sink instance
--spec new(writer_id(), logi_layout:layout(iodata())) -> logi_sink:sink().
-new(Writer, Layout) ->
-    _ = is_atom(Writer) orelse error(bagarg, [Writer, Layout]),
-    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Writer, Layout]),
-    logi_sink:new(?MODULE, Layout, Writer).
+-spec new(filepath()) -> logi_sink:spec().
+new(FilePath) ->
+    new(FilePath, []).
 
-new_with_agent(WriterId, FilePath, Options) ->
-    Layout = logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())),
-    logi_sink:new(?MODULE, Layout, undefined, #{start => {?MODULE, start_agent, [WriterId, FilePath, Options]}}).
+-spec new(filepath(), options()) -> logi_sink:spec().
+new(FilePath, Options) ->
+    _ = is_binary(FilePath) orelse error(badarg, [FilePath, Options]),
+    _ = is_list(Options) orelse error(badarg, [FilePath, Options]),
 
-start_agent(_, WriterId, FilePath, Options) ->
+    Layout = proplists:get_value(layout, Options, default_layout()),
     Logger = proplists:get_value(logger, Options, logi:default_logger()),
     Rotator = proplists:get_value(rotator, Options, logi_sink_file_rotator_do_nothing:new()),
     OpenOpt = proplists:get_value(open_opt, Options, [append, raw, delayed_write]),
+    Restart = proplists:get_value(restart, Options, logi_restart_strategy_backoff:new()),
+    Shutdown = proplists:get_value(shutdown, Options, 1000),
+    Name = proplists:get_value(name, Options, undefined), % TODO: validate
+    _ = logi:is_logger(Logger) orelse error(badarg, [FilePath, Options]),
+    _ = logi_sink_file_rotator:is_rotator(Rotator) orelse error(badarg, [FilePath, Options]),
+    _ = is_list(OpenOpt) orelse error(badarg, [FilePath, Options]),
 
-    case logi_sink_file_writer:start_link(WriterId, {FilePath, Logger, Rotator, OpenOpt}) of
-        {ok, Pid} -> {ok, Pid, WriterId};
-        Other     -> Other
-    end.
-
-%% @equiv start_writer(WriterId, FilePath, [])
--spec start_writer(writer_id(), filepath()) -> {ok, pid()} | {error, Reason::term()}.
-start_writer(WriterId, FilePath) ->
-    start_writer(WriterId, FilePath, []).
-
-%% @doc Starts a new file writer
--spec start_writer(writer_id(), filepath(), writer_options()) -> {ok, pid()} | {error, Reason::term()}.
-start_writer(WriterId, FilePath, Options) ->
-    Args = [WriterId, FilePath, Options],
-    _ = is_atom(WriterId) orelse error(badarg, Args),
-    _ = is_binary(FilePath) orelse error(badarg, Args),
-    _ = is_list(Options) orelse error(badarg, Args),
-
-    Logger = proplists:get_value(logger, Options, logi:default_logger()),
-    Rotator = proplists:get_value(rotator, Options, logi_sink_file_rotator_do_nothing:new()),
-    OpenOpt = proplists:get_value(open_opt, Options, [append, raw, delayed_write]),
-    _ = logi:is_logger(Logger) orelse error(badarg, Args),
-    _ = logi_sink_file_rotator:is_rotator(Rotator) orelse error(badarg, Args),
-    _ = is_list(OpenOpt) orelse error(badarg, OpenOpt),
-
-    logi_sink_file_writer_sup:start_child(WriterId, {FilePath, Logger, Rotator, OpenOpt}).
-
-%% @doc Stops the file writer
-%%
-%% If the writer does not exists, it is silently ignored.
--spec stop_writer(writer_id()) -> ok.
-stop_writer(WriterId) ->
-    _ = is_atom(WriterId) orelse error(badarg, [WriterId]),
-    logi_sink_file_writer_sup:stop_child(WriterId).
-
-%% @doc Returns a list of the running file writers
--spec which_writers() -> [writer_id()].
-which_writers() ->
-    [Id || {Id, _} <- logi_sink_file_writer_sup:which_children()].
+    Start = {logi_sink_file_agent, start_link, [Name, FilePath, Logger, Rotator, OpenOpt]},
+    AgentSpec = logi_agent:new(Start, Restart, Shutdown),
+    logi_sink:new(?MODULE, Layout, AgentSpec).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(_Context, FormattedData, Writer) ->
-    logi_sink_file_writer:write(Writer, FormattedData).
+write(_Context, FormattedData, AgentPid) ->
+    logi_sink_file_agent:write(AgentPid, FormattedData).
+
+%% @private
+whereis_agent(AgentPid) ->
+    AgentPid.

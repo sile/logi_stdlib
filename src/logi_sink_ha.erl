@@ -63,6 +63,7 @@
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([write/3]).
+-export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -113,6 +114,10 @@ new(ManagerId) ->
 %% @private
 write(Context, {Format, Data}, ManagerId) ->
     logi_sink_ha_manager:write_to_available_destination(ManagerId, Context, Format, Data).
+
+%% @private
+whereis_agent(ManagerId) ->
+    whereis(ManagerId).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

@@ -44,33 +44,30 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([start_limiter/2, start_limiter/3]).
--export([stop_limiter/1]).
--export([which_limiters/0]).
+-export([new/1, new/2]).
 
--export([new/2]).
-
--export_type([id/0]).
 -export_type([options/0, option/0]).
--export_type([destination/0]).
+-export_type([agent_option/0]).
 -export_type([write_rate/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([write/3]).
+-export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type id() :: atom().
-%% The identifier of a limiter
 
 -type options() :: [option()].
 
--type option() :: {logger, logi:logger()}
-                | {max_message_queue_len, non_neg_integer()}
-                | {write_rate_limits, [write_rate()]}.
+-type option() :: agent_option().
+
+-type agent_option() :: {logger, logi:logger()}
+                      | {max_message_queue_len, non_neg_integer()}
+                      | {write_rate_limits, [write_rate()]}
+                      | {name, logi_lib_proc:otp_name()}.
 %% `logger':
 %% - limiterが使用するロガー
 %% - 破棄されたメッセージの情報等は、このロガーを使って報告される
@@ -88,13 +85,6 @@
 %% - TODO: 詳細な挙動を書く (性能と正確さとのトレードオフ周りも)
 %% - default: `[]'
 
--type destination() :: pid() | atom().
-%% ログメッセージの実際の書き込み先プロセス (or その名前)
-%%
-%% このプロセスが死活判定やメッセージキュー詰まり判定の対象となる
-%%
-%% TODO: Support `via' format name
-
 -type write_rate() :: {Bytes::non_neg_integer(), Period::pos_integer()}. % TODO: Period::pos_milliseconds()
 %% ログメッセージの書き込みレートの上限指定
 %%
@@ -103,66 +93,54 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv start_limiter(Id, Destination, [])
--spec start_limiter(id(), destination()) -> {ok, pid()} | {error, Reason::term()}.
-start_limiter(Id, Destination) ->
-    start_limiter(Id, Destination, []).
+-spec new(logi_sink:spec()) -> logi_sink:spec().
+new(BaseSink) ->
+    new(BaseSink, []).
 
-%% @doc Starts a new limiter
--spec start_limiter(id(), destination(), options()) -> {ok, pid()} | {error, Reason::term()}.
-start_limiter(Id, Destination, Options) ->
-    Args = [Id, Destination, Options],
-    _ = is_atom(Id) orelse error(badarg, Args),
-    _ = is_atom(Destination) orelse is_pid(Destination) orelse error(badarg, Args),
+-spec new(logi_sink:spec(), options()) -> logi_sink:spec().
+new(BaseSink, Options) ->
+    Args = [BaseSink, Options],
+    _ = logi_sink:is_spec(BaseSink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
+
+    %% TODO: option
+    Restart = logi_agent:get_restart(logi_sink:get_agent_spec(BaseSink)),
+    Shutdown = 1000, % TODO:
 
     Logger = proplists:get_value(logger, Options, logi:default_logger()),
     MaxLen = proplists:get_value(max_message_queue_len, Options, 256),
     WriteLimits = proplists:get_value(write_rate_limits, Options, []),
+    Name = proplists:get_value(name, Options, undefined), % TODO: validate
     _ = logi:is_logger(Logger) orelse error(badarg, Args),
     _ = (is_integer(MaxLen) andalso MaxLen >= 0) orelse error(badarg, Args),
     _ = (is_list(WriteLimits) andalso lists:all(fun is_write_rate/1, WriteLimits)) orelse error(badarg, Args),
 
-    logi_sink_flow_limiter_server_sup:start_child(Id, {Destination, Logger, MaxLen, lists:usort(WriteLimits)}).
-
-%% @doc Stops the limiter
-%%
-%% If the limiter associated to `Id' does not exists, it is silently ignored.
--spec stop_limiter(id()) -> ok.
-stop_limiter(Id) ->
-    logi_sink_flow_limiter_server_sup:stop_child(Id).
-
-%% @doc Returns a list of the running limiters
--spec which_limiters() -> [id()].
-which_limiters() ->
-    [Id || {Id, _} <- logi_sink_flow_limiter_server_sup:which_children()].
-
-%% @doc Creates a new sink instance
-%%
-%% The default layout of the sink is `logi_sink:default_layout(BaseSink)'.
--spec new(id(), logi_sink:sink()) -> logi_sink:sink().
-new(Limiter, BaseSink) ->
-    _ = is_atom(Limiter) orelse error(badarg, [Limiter, BaseSink]),
-    _ = logi_sink:is_sink(BaseSink) orelse error(badarg, [Limiter, BaseSink]),
-    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), {Limiter, BaseSink}).
+    Start = {logi_sink_flow_limiter_agent, start_link, [Name, Logger, MaxLen, lists:usort(WriteLimits), BaseSink]},
+    AgentSpec = logi_agent:new(Start, Restart, Shutdown),
+    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), AgentSpec).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, {Format, Data}, {Limiter, BaseSink}) ->
-    case logi_sink_flow_limiter_server:get_destination_status(Limiter) of
-        dead           -> logi_sink_flow_limiter_server:notify_omission(Limiter, destination_is_dead, Context);
-        queue_overflow -> logi_sink_flow_limiter_server:notify_omission(Limiter, message_queue_overflow, Context);
+-spec write(logi_context:context(), {io:format(), logi_layout:data()}, {pid(), logi_sink:sink()}) -> any().
+write(Context, {Format, Data}, {_AgentPid, Table, BaseSink}) ->
+    case logi_sink_flow_limiter_agent:get_destination_status(Table) of
+        dead           -> logi_sink_flow_limiter_agent:notify_omission(Table, destination_is_dead, Context);
+        queue_overflow -> logi_sink_flow_limiter_agent:notify_omission(Table, message_queue_overflow, Context);
         normal         ->
-            case logi_sink_flow_limiter_server:is_rate_exceeded(Limiter) of
-                true  -> logi_sink_flow_limiter_server:notify_omission(Limiter, rate_exceeded, Context);
+            case logi_sink_flow_limiter_agent:is_rate_exceeded(Table) of
+                true  -> logi_sink_flow_limiter_agent:notify_omission(Table, rate_exceeded, Context);
                 false ->
                     FormattedData = logi_layout:format(Context, Format, Data, logi_sink:get_layout(BaseSink)),
-                    ok = logi_sink_flow_limiter_server:notify_write(Limiter, data_size(FormattedData)),
+                    ok = logi_sink_flow_limiter_agent:notify_write(Table, data_size(FormattedData)),
                     (logi_sink:get_module(BaseSink)):write(Context, FormattedData, logi_sink:get_extra_data(BaseSink))
             end
     end.
+
+%% @private
+whereis_agent({AgentPid, _, _}) ->
+    AgentPid.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

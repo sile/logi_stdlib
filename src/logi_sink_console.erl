@@ -33,6 +33,7 @@
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([write/3]).
+-export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -42,10 +43,11 @@ new() ->
     new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())))).
 
 %% @doc Creates a new sink instance
--spec new(logi_layout:layout(unicode:chardata())) -> logi_sink:sink().
+-spec new(logi_layout:layout(unicode:chardata())) -> logi_sink:spec().
 new(Layout) ->
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Layout]),
-    logi_sink:new(?MODULE, Layout).
+    AgentSpec = logi_agent:new_external(user, logi_restart_strategy_backoff:new(), undefined),
+    logi_sink:new(?MODULE, Layout, AgentSpec).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
@@ -53,3 +55,7 @@ new(Layout) ->
 %% @private
 write(_Context, FormattedData, _) ->
     io:put_chars(user, FormattedData).
+
+%% @private
+whereis_agent(_) ->
+    whereis(user).

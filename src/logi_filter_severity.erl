@@ -19,10 +19,10 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a new filter instance
--spec new(logi_sink:severity_condition()) -> logi_filter:filter().
+-spec new(logi_condition:severity_condition()) -> logi_filter:filter().
 new(SeverityCondition) ->
-    _ = not is_map(SeverityCondition) andalso logi_sink:is_condition(SeverityCondition) orelse error(badarg, [SeverityCondition]),
-    AllowedSeverities = gb_sets:from_list(logi_sink:normalize_condition(SeverityCondition)),
+    _ = not is_map(SeverityCondition) andalso logi_condition:is_condition(SeverityCondition) orelse error(badarg, [SeverityCondition]),
+    AllowedSeverities = gb_sets:from_list(logi_condition:normalize(SeverityCondition)),
     logi_filter:new(?MODULE, AllowedSeverities).
 
 %%----------------------------------------------------------------------------------------------------------------------

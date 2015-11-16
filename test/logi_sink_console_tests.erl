@@ -12,7 +12,7 @@ new_test_() ->
      {"Creates a new instance",
       fun () ->
               Sink = logi_sink_console:new(),
-              ?assert(logi_sink:is_sink(Sink))
+              ?assert(logi_sink:is_spec(Sink))
       end}
     ].
 

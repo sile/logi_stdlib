@@ -2,16 +2,14 @@
 %%
 %% @doc ログメッセージのファイルへの書き込みを行うためのプロセス
 %% @private
--module(logi_sink_file_writer).
+-module(logi_sink_file_agent).
 
 -behaviour(gen_server).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([start_link/2, write/2]).
-
--export_type([start_arg/0]).
+-export([start_link/6, write/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -34,28 +32,36 @@
           open_options     :: logi_sink_file:open_options()
         }).
 
--type start_arg() :: {logi_sink_file:filepath(), logi:logger(), logi_sink_file_rotator:rotator(), logi_sink_file:open_options()}.
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Starts a new file writer
--spec start_link(logi_sink_file:writer_id(), start_arg()) -> {ok, pid()} | {error, Reason::term()}.
-start_link(WriterId, Arg) ->
-    gen_server:start_link({local, WriterId}, ?MODULE, [WriterId, Arg], []).
+%% @doc Starts a new file agent
+-spec start_link(pid(), logi_lib_proc:otp_name() | undefined, logi_sink_file:filepath(), logi:logger(),
+                 logi_sink_file_rotator:rotator(), logi_sink_file:open_options()) ->
+                        {ok, pid(), logi_agent:proc_ref()} | {error, Reason::term()}.
+start_link(_, Name, FilePath, Logger, Rotator, OpenOptions) ->
+    Args = [FilePath, Logger, Rotator, OpenOptions],
+    Result =
+        case Name of
+            undefined -> gen_server:start_link(?MODULE, Args, []);
+            _         -> gen_server:start_link(Name, ?MODULE, Args, [])
+        end,
+    case Result of
+        {ok, Pid} -> {ok, Pid, Pid};
+        Other     -> Other
+    end.
 
 %% @doc Writes a log message
--spec write(logi_sink_file:writer_id(), iodata()) -> ok.
-write(WriterId, Message) ->
-    gen_server:cast(WriterId, {write, Message}).
+-spec write(logi_lib_proc:otp_ref(), iodata()) -> ok.
+write(AgentRef, Message) ->
+    gen_server:cast(AgentRef, {write, Message}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init(Args = [WriterId, {BaseFilePath, Logger, Rotator0, OpenOptions}]) ->
+init(Args = [BaseFilePath, Logger, Rotator0, OpenOptions]) ->
     _ = logi:save_as_default(Logger),
-    _ = logi:set_headers(#{id => WriterId}),
     _ = logi:debug("Init: args=~p", [Args]),
     case open_new_file(BaseFilePath, Rotator0, OpenOptions) of
         {error, Reason} ->

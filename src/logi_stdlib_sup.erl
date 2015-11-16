@@ -29,11 +29,4 @@ start_link() ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([]) ->
-    Supervisor = fun (Module) -> {Module, {Module, start_link, []}, permanent, infinity, supervisor, [Module]} end,
-    Children =
-        [
-         Supervisor(logi_sink_ha_manager_sup),
-         Supervisor(logi_sink_file_writer_sup),
-         Supervisor(logi_sink_flow_limiter_server_sup)
-        ],
-    {ok, { {one_for_one, 1, 5}, Children} }.
+    {ok, {#{}, []}}.
