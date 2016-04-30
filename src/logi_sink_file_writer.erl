@@ -2,14 +2,22 @@
 %%
 %% @doc ログメッセージのファイルへの書き込みを行うためのプロセス
 %% @private
--module(logi_sink_file_agent).
+-module(logi_sink_file_writer).
 
+-behaviour(logi_sink_writer).
 -behaviour(gen_server).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([start_link/6, write/2]).
+-export([start_link/1]).
+
+-export_type([start_arg/0]).
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% 'logi_sink_writer' Callback API
+%%----------------------------------------------------------------------------------------------------------------------
+-export([write/4, get_writee/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -22,7 +30,6 @@
 -define(FILE_EXISTENCE_CHECK_INTERVAL, (10 * 1000)).
 
 -define(STATE, ?MODULE).
-
 -record(?STATE,
         {
           fd               :: file:fd(),
@@ -32,37 +39,36 @@
           open_options     :: logi_sink_file:open_options()
         }).
 
+-type start_arg() :: {logi_sink_file:filepath(), logi:logger(), logi_sink_file_rotator:rotator(),
+                      logi_sink_file:open_options(), logi_layout:layout()}.
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a new file agent
--spec start_link(pid(), logi_lib_proc:otp_name() | undefined, logi_sink_file:filepath(), logi:logger(),
-                 logi_sink_file_rotator:rotator(), logi_sink_file:open_options()) ->
-                        {ok, pid(), logi_agent:proc_ref()} | {error, Reason::term()}.
-start_link(_, Name, FilePath, Logger, Rotator, OpenOptions) ->
-    Args = [FilePath, Logger, Rotator, OpenOptions],
-    Result =
-        case Name of
-            undefined -> gen_server:start_link(?MODULE, Args, []);
-            _         -> gen_server:start_link(Name, ?MODULE, Args, [])
-        end,
-    case Result of
-        {ok, Pid} -> {ok, Pid, Pid};
-        Other     -> Other
-    end.
+-spec start_link(start_arg()) -> {ok, pid()} | {error, Reason::term()}.
+start_link(Arg) ->
+    gen_server:start_link(?MODULE, [Arg], []).
 
-%% @doc Writes a log message
--spec write(logi_lib_proc:otp_ref(), iodata()) -> ok.
-write(AgentRef, Message) ->
-    gen_server:cast(AgentRef, {write, Message}).
+%%----------------------------------------------------------------------------------------------------------------------
+%% 'logi_sink_writer' Callback Functions
+%%----------------------------------------------------------------------------------------------------------------------
+%% @private
+write(Context, Format, Data, {Writee, Layout}) ->
+    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+    ok = gen_server:cast(Writee, {write, FormattedData}),
+    FormattedData.
+
+%% @private
+get_writee({Writee, _}) ->
+    Writee.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init(Args = [BaseFilePath, Logger, Rotator0, OpenOptions]) ->
+init({BaseFilePath, Logger, Rotator0, OpenOptions, Layout}) ->
     _ = logi:save_as_default(Logger),
-    _ = logi:debug("Init: args=~p", [Args]),
     case open_new_file(BaseFilePath, Rotator0, OpenOptions) of
         {error, Reason} ->
             _ = logi:alert("Can't open a log file: reason=~p", [Reason]),
@@ -79,6 +85,7 @@ init(Args = [BaseFilePath, Logger, Rotator0, OpenOptions]) ->
                    },
             ok = schedule_file_existence_check(),
             ok = schedule_rotation_check(0),
+            ok = logi_sink_proc:send_writer_to_parent(logi_sink_writer:new(?MODULE, {self(), Layout})),
             {ok, State}
     end.
 

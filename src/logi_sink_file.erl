@@ -28,42 +28,28 @@
 %% </pre>
 -module(logi_sink_file).
 
--behaviour(logi_sink).
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2]).
+-export([new/2, new/3]).
 -export([default_layout/0]).
 
 -export_type([options/0, option/0]).
--export_type([agent_option/0]).
 -export_type([open_options/0]).
 -export_type([filepath/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% 'logi_sink' Callback API
-%%----------------------------------------------------------------------------------------------------------------------
--export([write/3]).
--export([whereis_agent/1]).
-
-%%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type filepath() :: binary().
+-type filepath() :: file:name_all().
 %% A log file path
 
 -type options() :: [option()].
 
 -type option() :: {layout, logi_layout:layout()}
-                | {restart, logi_restart_strategy:strategy()}
-                | {shutdown, logi_agent:shutdown()}
-                | agent_option().
-
--type agent_option() :: {logger, logi:logger()}
-                      | {rotator, logi_sink_file_rotator:rotator()}
-                      | {open_opt, open_options()}
-                      | {name, logi_lib_proc:otp_name()}.
+                | {logger, logi:logger()}
+                | {rotator, logi_sink_file_rotator:rotator()}
+                | {open_opt, open_options()}.
 %% `logger':
 %% - 起動したwriterのログの出力先
 %% - ディスクフル等によりファイル書き込み自体が行いない場合も、ここにログが出力されるので、`error'以上の深刻度のログメッセージは、信頼できる出力先に吐かれるようにしておくことが推奨される
@@ -90,37 +76,23 @@
 default_layout() ->
     logi_layout_newline:new(logi_layout_limit:new(logi_layout_default:new())).
 
--spec new(filepath()) -> logi_sink:spec().
-new(FilePath) ->
-    new(FilePath, []).
+-spec new(logi_sink:id(), filepath()) -> logi_sink:sink().
+new(Id, FilePath) ->
+    new(Id, FilePath, []).
 
--spec new(filepath(), options()) -> logi_sink:spec().
-new(FilePath, Options) ->
-    _ = is_binary(FilePath) orelse error(badarg, [FilePath, Options]),
-    _ = is_list(Options) orelse error(badarg, [FilePath, Options]),
+-spec new(logi_sink:id(), filepath(), options()) -> logi_sink:sink().
+new(Id, FilePath, Options) ->
+    _ = is_binary(FilePath) orelse error(badarg, [Id, FilePath, Options]),
+    _ = is_list(Options) orelse error(badarg, [Id, FilePath, Options]),
 
     Layout = proplists:get_value(layout, Options, default_layout()),
     Logger = proplists:get_value(logger, Options, logi:default_logger()),
     Rotator = proplists:get_value(rotator, Options, logi_sink_file_rotator_do_nothing:new()),
     OpenOpt = proplists:get_value(open_opt, Options, [append, raw, delayed_write]),
-    Restart = proplists:get_value(restart, Options, logi_restart_strategy_backoff:new()),
-    Shutdown = proplists:get_value(shutdown, Options, 1000),
-    Name = proplists:get_value(name, Options, undefined), % TODO: validate
     _ = logi:is_logger(Logger) orelse error(badarg, [FilePath, Options]),
-    _ = logi_sink_file_rotator:is_rotator(Rotator) orelse error(badarg, [FilePath, Options]),
+    _ = logi_sink_file_rotator:is_rotator(Rotator) orelse error(badarg, [Id, FilePath, Options]),
     _ = is_list(OpenOpt) orelse error(badarg, [FilePath, Options]),
 
-    Start = {logi_sink_file_agent, start_link, [Name, FilePath, Logger, Rotator, OpenOpt]},
-    AgentSpec = logi_agent:new(Start, Restart, Shutdown),
-    logi_sink:new(?MODULE, Layout, AgentSpec).
-
-%%----------------------------------------------------------------------------------------------------------------------
-%% 'logi_sink' Callback Functions
-%%----------------------------------------------------------------------------------------------------------------------
-%% @private
-write(_Context, FormattedData, AgentPid) ->
-    logi_sink_file_agent:write(AgentPid, FormattedData).
-
-%% @private
-whereis_agent(AgentPid) ->
-    AgentPid.
+    FilePathBin = iolist_to_binary(FilePath), % XXX:
+    StartArg = {FilePathBin, Logger, Rotator, OpenOpt, Layout},
+    logi_sink:new(#{id => Id, start => {logi_sink_file_writer, start_link, [StartArg]}}).

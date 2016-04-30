@@ -11,8 +11,8 @@ new_test_() ->
     [
      {"Creates a new instance",
       fun () ->
-              Sink = logi_sink_console:new(),
-              ?assert(logi_sink:is_spec(Sink))
+              Sink = logi_sink_console:new(test),
+              ?assert(logi_sink:is_sink(Sink))
       end}
     ].
 
@@ -23,7 +23,7 @@ format_test_() ->
      [
       {"Writes log messages",
        fun () ->
-               {ok, _} = logi_channel:install_sink(info, logi_sink_console:new()),
+               {ok, _} = logi_channel:install_sink(logi_sink_console:new(test), info),
                _ = logi:info("hello world"),
                ?assert(true)
        end}

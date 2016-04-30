@@ -22,40 +22,41 @@
 %% </pre>
 -module(logi_sink_console).
 
--behaviour(logi_sink).
+-behaviour(logi_sink_writer).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/0, new/1]).
+-export([new/1, new/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% 'logi_sink' Callback API
+%% 'logi_sink_writer' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/3]).
--export([whereis_agent/1]).
+-export([write/4, get_writee/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))))
-new() ->
-    new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())))).
+%% %% @equiv new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))))
+-spec new(logi_sink:id()) -> logi_sink:sink().
+new(SinkId) ->
+    new(SinkId, logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())))).
 
 %% @doc Creates a new sink instance
--spec new(logi_layout:layout(unicode:chardata())) -> logi_sink:spec().
-new(Layout) ->
+-spec new(logi_sink:id(), logi_layout:layout(unicode:chardata())) -> logi_sink:sink().
+new(SinkId, Layout) ->
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Layout]),
-    AgentSpec = logi_agent:new_external(user, logi_restart_strategy_backoff:new(), undefined),
-    logi_sink:new(?MODULE, Layout, AgentSpec).
+    logi_sink:from_writer(SinkId, logi_sink_writer:new(?MODULE, Layout)).
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% 'logi_sink' Callback Functions
+%% 'logi_sink_writer' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(_Context, FormattedData, _) ->
-    io:put_chars(user, FormattedData).
+write(Context, Format, Data, Layout) ->
+    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+    _ = io:put_chars(user, FormattedData),
+    FormattedData.
 
 %% @private
-whereis_agent(_) ->
+get_writee(_) ->
     whereis(user).

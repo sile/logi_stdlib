@@ -39,35 +39,25 @@
 %% </pre>
 -module(logi_sink_flow_limiter).
 
--behaviour(logi_sink).
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2]).
+-export([new/2, new/3]).
 
 -export_type([options/0, option/0]).
 -export_type([agent_option/0]).
 -export_type([write_rate/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% 'logi_sink' Callback API
-%%----------------------------------------------------------------------------------------------------------------------
--export([write/3]).
--export([whereis_agent/1]).
-
-%%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
-
 -type options() :: [option()].
 
 -type option() :: agent_option().
 
 -type agent_option() :: {logger, logi:logger()}
                       | {max_message_queue_len, non_neg_integer()}
-                      | {write_rate_limits, [write_rate()]}
-                      | {name, logi_lib_proc:otp_name()}.
+                      | {write_rate_limits, [write_rate()]}.
 %% `logger':
 %% - limiterが使用するロガー
 %% - 破棄されたメッセージの情報等は、このロガーを使って報告される
@@ -93,54 +83,25 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec new(logi_sink:spec()) -> logi_sink:spec().
-new(BaseSink) ->
-    new(BaseSink, []).
+-spec new(logi_sink:id(), logi_sink:sink()) -> logi_sink:sink().
+new(Id, BaseSink) ->
+    new(Id, BaseSink, []).
 
--spec new(logi_sink:spec(), options()) -> logi_sink:spec().
-new(BaseSink, Options) ->
-    Args = [BaseSink, Options],
-    _ = logi_sink:is_spec(BaseSink) orelse error(badarg, Args),
+-spec new(logi_sink:id(), logi_sink:sink(), options()) -> logi_sink:sink().
+new(Id, BaseSink, Options) ->
+    Args = [Id, BaseSink, Options],
+    _ = logi_sink:is_sink(BaseSink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
-
-    %% TODO: option
-    Restart = logi_agent:get_restart(logi_sink:get_agent_spec(BaseSink)),
-    Shutdown = 1000, % TODO:
 
     Logger = proplists:get_value(logger, Options, logi:default_logger()),
     MaxLen = proplists:get_value(max_message_queue_len, Options, 256),
     WriteLimits = proplists:get_value(write_rate_limits, Options, []),
-    Name = proplists:get_value(name, Options, undefined), % TODO: validate
     _ = logi:is_logger(Logger) orelse error(badarg, Args),
     _ = (is_integer(MaxLen) andalso MaxLen >= 0) orelse error(badarg, Args),
     _ = (is_list(WriteLimits) andalso lists:all(fun is_write_rate/1, WriteLimits)) orelse error(badarg, Args),
 
-    Start = {logi_sink_flow_limiter_agent, start_link, [Name, Logger, MaxLen, lists:usort(WriteLimits), BaseSink]},
-    AgentSpec = logi_agent:new(Start, Restart, Shutdown),
-    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), AgentSpec).
-
-%%----------------------------------------------------------------------------------------------------------------------
-%% 'logi_sink' Callback Functions
-%%----------------------------------------------------------------------------------------------------------------------
-%% @private
--spec write(logi_context:context(), {io:format(), logi_layout:data()}, {pid(), logi_sink:sink()}) -> any().
-write(Context, {Format, Data}, {_AgentPid, Table, BaseSink}) ->
-    case logi_sink_flow_limiter_agent:get_destination_status(Table) of
-        dead           -> logi_sink_flow_limiter_agent:notify_omission(Table, destination_is_dead, Context);
-        queue_overflow -> logi_sink_flow_limiter_agent:notify_omission(Table, message_queue_overflow, Context);
-        normal         ->
-            case logi_sink_flow_limiter_agent:is_rate_exceeded(Table) of
-                true  -> logi_sink_flow_limiter_agent:notify_omission(Table, rate_exceeded, Context);
-                false ->
-                    FormattedData = logi_layout:format(Context, Format, Data, logi_sink:get_layout(BaseSink)),
-                    ok = logi_sink_flow_limiter_agent:notify_write(Table, data_size(FormattedData)),
-                    (logi_sink:get_module(BaseSink)):write(Context, FormattedData, logi_sink:get_extra_data(BaseSink))
-            end
-    end.
-
-%% @private
-whereis_agent({AgentPid, _, _}) ->
-    AgentPid.
+    StartArg = {Logger, MaxLen, lists:usort(WriteLimits), BaseSink},
+    logi_sink:new(#{id => Id, start => {logi_sink_flow_limiter_writer, start_link, [StartArg]}}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
@@ -148,11 +109,3 @@ whereis_agent({AgentPid, _, _}) ->
 -spec is_write_rate(write_rate() | term()) -> boolean().
 is_write_rate({Bytes, Period}) -> is_integer(Bytes) andalso Bytes >= 0 andalso is_integer(Period) andalso Period > 0;
 is_write_rate(_)               -> false.
-
--spec data_size(term()) -> non_neg_integer().
-data_size(X) ->
-    try
-        iolist_size(X)
-    catch
-        _ -> erlang:external_size(X)
-    end.
