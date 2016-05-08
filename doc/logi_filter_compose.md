@@ -1,11 +1,14 @@
 
 
-# Module logi_filter_logical #
+# Module logi_filter_compose #
+* [Description](#description)
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+A logi_filter implementation filter which is composed of sub-filters combined by logical operators.
+
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_filter`](logi_filter.md).
 
@@ -22,6 +25,10 @@ __Behaviours:__ [`logi_filter`](logi_filter.md).
 <pre><code>
 expression() = {'not', <a href="#type-expression">expression()</a>} | {'and', [<a href="#type-expression">expression()</a>]} | {'or', [<a href="#type-expression">expression()</a>]} | <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
 </code></pre>
+
+ Logical operation expression which represents a composite filter.
+
+Expressions are evaluated in the short-circuit manner.
 
 <a name="index"></a>
 

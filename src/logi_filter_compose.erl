@@ -1,10 +1,8 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc A logi_filter implementation filter which is composed of sub-filters combined by logical operators
 %% @end
-%%
-%% 論理演算を用いて複数のフィルタを結合するためのフィルタ
-%%
-%% 式は短絡評価される
--module(logi_filter_logical).
+-module(logi_filter_compose).
 
 -behaviour(logi_filter).
 
@@ -12,6 +10,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1]).
+
 -export_type([expression/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -26,9 +25,9 @@
                     | {'and', [expression()]}
                     | {'or',  [expression()]}
                     | logi_filter:filter().
+%% Logical operation expression which represents a composite filter.
 %%
-
-%% 論理演算式
+%% Expressions are evaluated in the short-circuit manner.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
