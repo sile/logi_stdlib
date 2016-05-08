@@ -1,4 +1,4 @@
-%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %% @end
 -module(logi_layout_limit_tests).
 

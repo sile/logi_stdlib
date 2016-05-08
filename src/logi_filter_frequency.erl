@@ -1,10 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
-%%
-%% === EXAMPLE ===
-%%
-%% TODO
+%% @doc A logi_filter implementation to control log message output frequency
+%% @end
 -module(logi_filter_frequency).
 
 -behaviour(logi_filter).
@@ -56,7 +53,9 @@
 -type location_id() :: {module(), logi_location:line(), logi:headers()}.
 -type intensity() :: #intensity{}.
 -type non_neg_milliseconds() :: non_neg_integer().
+
 -type pos_milliseconds() :: pos_integer().
+%% Positive milli-seconds
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -67,16 +66,14 @@ new() -> new([]).
 
 %% @doc Creates a new filter instance
 %%
-%% TODO: location unit: pid, module, line, headers
-%%
 %% === OPTIONS ===
 %% `max_count':
-%% - TODO
-%% - default: `5'
+%% - Maximum log message count allowed in the given period
+%% - Default: `5'
 %%
 %% `period':
-%% - TODO
-%% - default: `60000'
+%% - Frequency control period
+%% - Default: `60000'
 -spec new(Options) -> logi_filter:filter() when
       Options :: [Option],
       Option  :: {max_count, pos_integer()}

@@ -6,20 +6,12 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-TODO.
+A logi_filter implementation to control log message output frequency.
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_filter`](logi_filter.md).
 
-<a name="description"></a>
-
-## Description ##
-
-
-#### <a name="EXAMPLE">EXAMPLE</a> ####
-
-TODO
 <a name="types"></a>
 
 ## Data Types ##
@@ -33,6 +25,8 @@ TODO
 <pre><code>
 pos_milliseconds() = pos_integer()
 </code></pre>
+
+ Positive milli-seconds
 
 <a name="index"></a>
 
@@ -68,4 +62,15 @@ new(Options) -&gt; <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {max_count, pos_integer()} | {period, <a href="#type-pos_milliseconds">pos_milliseconds()</a>}</code></li></ul>
 
 Creates a new filter instance
+
+
+#### <a name="OPTIONS">OPTIONS</a> ####
+
+`max_count`:
+- Maximum log message count allowed in the given period
+- Default: `5`
+
+`period`:
+- Frequency control period
+- Default: `60000`
 

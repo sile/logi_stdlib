@@ -1,15 +1,9 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc A logi_layout implementation which limits the size of a log message
 %% @end
 %%
-%% NOTE: headers is not limited
-%%
-%% memo:
-%% 以下くらいがちょうど良いかも:
-%% - 文字列系の長さ上限
-%% - データ構造系(タプル、マップ、etc)の幅上限
-%% - レベル順探索に基づく要素数上限
-%%   - 単なるレベル順ではなく、各子ども毎に探索数がバランスすると良いかも
-%%   - 横に長い子と縦に長い子の間で、不平等が生じにくくするため
+%% FIXME: Improve cutoff algorithm
 -module(logi_layout_limit).
 
 -behaviour(logi_layout).
@@ -30,11 +24,12 @@
 -define(LINE_LENGTH, "1000000000"). % 1GB
 -define(IS_POS_INT(X), (is_integer(X) andalso X > 0)).
 
--record(extra, % TODO: ?STATE
+-define(EXTRA, ?MODULE).
+-record(?EXTRA,
         {
           base_layout       :: logi_layout:layout(),
           max_width = 512   :: pos_integer() | infinity,
-          max_depth = 8     :: pos_integer() | infinity, % TODO: リストは対象から外しても良いかも？(ヒューリスティック)
+          max_depth = 8     :: pos_integer() | infinity,
           max_size  = 10240 :: pos_integer() | infinity
         }).
 
@@ -45,6 +40,7 @@
 -spec new(logi_layout:layout()) -> logi_layout:layout().
 new(BaseLayout) -> new(BaseLayout, []).
 
+%% @doc Creates a new layout instance
 -spec new(logi_layout:layout(), Options) -> logi_layout:layout() when
       Options :: [Option],
       Option  :: {max_width, pos_integer() | infinity}
@@ -63,7 +59,7 @@ new(BaseLayout, Options) ->
     _ = ?IS_POS_INT(MaxSize) orelse MaxSize =:= infinity orelse error(badarg, Args),
 
     Extra =
-        #extra{
+        #?EXTRA{
            base_layout = BaseLayout,
            max_width   = MaxWidth,
            max_depth   = MaxDepth,
@@ -77,14 +73,14 @@ new(BaseLayout, Options) ->
 %% @private
 format(Context, Format0, Data0, Extra) ->
     Format1 = adjust_format(Format0),
-    Data1 = [case is_truncation_needed(X, Extra#extra.max_depth, Extra#extra.max_width) of
+    Data1 = [case is_truncation_needed(X, Extra#?EXTRA.max_depth, Extra#?EXTRA.max_width) of
                  false -> X;
-                 true  -> adjust_data(X, 0, Extra#extra.max_depth, Extra#extra.max_width)
+                 true  -> adjust_data(X, 0, Extra#?EXTRA.max_depth, Extra#?EXTRA.max_width)
              end || X <- Data0],
-    FormattedData = logi_layout:format(Context, Format1, Data1, Extra#extra.base_layout),
-    case iolist_size(FormattedData) =< Extra#extra.max_size of
+    FormattedData = logi_layout:format(Context, Format1, Data1, Extra#?EXTRA.base_layout),
+    case iolist_size(FormattedData) =< Extra#?EXTRA.max_size of
         true  -> FormattedData;
-        false -> abbreviate(FormattedData, Extra#extra.max_size)
+        false -> abbreviate(FormattedData, Extra#?EXTRA.max_size)
     end.
 
 %%----------------------------------------------------------------------------------------------------------------------
