@@ -17,7 +17,7 @@ new_test_() ->
       end}
     ].
 
-format_test_() ->
+write_test_() ->
     {foreach,
      fun ()     -> {ok, Apps} = application:ensure_all_started(logi_stdlib), Apps end,
      fun (Apps) -> lists:foreach(fun application:stop/1, Apps) end,
