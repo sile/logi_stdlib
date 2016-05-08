@@ -1,8 +1,8 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
-%% @end
+%% @copyright 2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% ローテーションを行わない`logi_sink_file_rotator'の実装
--module(logi_sink_file_rotator_do_nothing).
+%% @doc A noop logi_sink_file_rotator implementation
+%% @end
+-module(logi_sink_file_rotator_noop).
 
 -behaviour(logi_sink_file_rotator).
 

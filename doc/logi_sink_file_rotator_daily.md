@@ -13,7 +13,7 @@ __Behaviours:__ [`logi_sink_file_rotator`](logi_sink_file_rotator.md).
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new(logi_sink_file_rotator_do_nothing:new())</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new rotator instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new(logi_sink_file_rotator_noop:new())</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new rotator instance.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -29,7 +29,7 @@ new() -&gt; <a href="logi_sink_file_rotator.md#type-rotator">logi_sink_file_rota
 </code></pre>
 <br />
 
-Equivalent to [`new(logi_sink_file_rotator_do_nothing:new())`](#new-1).
+Equivalent to [`new(logi_sink_file_rotator_noop:new())`](#new-1).
 
 <a name="new-1"></a>
 

@@ -1,10 +1,13 @@
 
 
-# Module logi_sink_file_rotator_do_nothing #
+# Module logi_sink_file_rotator_noop #
+* [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+A noop logi_sink_file_rotator implementation.
+
+Copyright (c) 2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_sink_file_rotator`](logi_sink_file_rotator.md).
 

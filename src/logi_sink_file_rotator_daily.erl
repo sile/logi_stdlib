@@ -39,9 +39,9 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(logi_sink_file_rotator_do_nothing:new())
+%% @equiv new(logi_sink_file_rotator_noop:new())
 -spec new() -> logi_sink_file_rotator:rotator().
-new() -> new(logi_sink_file_rotator_do_nothing:new()).
+new() -> new(logi_sink_file_rotator_noop:new()).
 
 %% @doc Creates a new rotator instance
 -spec new(logi_sink_file_rotator:rotator()) -> logi_sink_file_rotator:rotator().
