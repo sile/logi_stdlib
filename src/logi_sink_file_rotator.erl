@@ -1,7 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
-%% @end
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% ファイルのローテーション機能を提供するモジュール用のインターフェース定義
+%% @doc The interface of file rotators
+%% @end
 -module(logi_sink_file_rotator).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -56,20 +56,21 @@ new(Module, State) ->
 is_rotator({Module, _}) -> is_callback_module(Module);
 is_rotator(_)           -> false.
 
-%% `FilePath'のローテーションを行う
+%% @doc Rotates `Filepath'
 %%
-%% ローテート結果のファイルパスは`Rotated'として返される。
+%% `Rotated' is new file path after the rotation.
+%% It may be the same as `FilePath'.
 %%
-%% なお、実際にローテーションを行うかどうかは、ビヘイビアの実装モジュール任せとなる。
-%% (行われなかった場合は、`FilePath'と`Rotated'が等しくなる)
--spec rotate(logi_sink_file:filepath(), rotator()) -> {ok, Rotated::logi_sink_file:filepath(), rotator()} | {error, Reason::term()}.
+%% A implementation module may not physically rotate the file (e.g., leaves the old file as it is).
+-spec rotate(logi_sink_file:filepath(), rotator()) ->
+                    {ok, Rotated::logi_sink_file:filepath(), rotator()} | {error, Reason::term()}.
 rotate(FilePath, {Module, State0}) ->
     case Module:rotate(FilePath, State0) of
         {error, Reason}       -> {error, Reason};
         {ok, Rotated, State1} -> {ok, Rotated, {Module, State1}}
     end.
 
-%% 現在のログファイルの出力先パスを返す
+%% @doc Gets the current output file path
 -spec get_current_filepath(logi_sink_file:filepath(), rotator()) ->
                                   {ok, logi_sink_file:filepath(), rotator()} | {error, Reason::term()}.
 get_current_filepath(BaseFilePath, {Module, State0}) ->
@@ -78,12 +79,12 @@ get_current_filepath(BaseFilePath, {Module, State0}) ->
         {ok, FilePath, State1} -> {ok, FilePath, {Module, State1}}
     end.
 
-%% 指定されたログファイルのパスが古くないかどうかを判定する
+%% @doc Determines the given file path is outdated
 %%
-%% `IsOutdated'が`false'の場合は、writerプロセスは{@link rotate/2}を呼び出して古いファイルをローテートした上で、
-%% {@link get_current_filepath/2}で取得したファイルをオープンし、以降はそのファイルに対してログメッセージの書き込みを行うようになる。
+%% If `IsOutdated' is `false', the caller process invokes {@link rotate/2} to rotate the old file.
+%% Then it will reopen a new file path which is the result of {@link get_current_filepath/2}.
 %%
-%% この関数は`NextCheckTime'後に再び呼び出される。
+%% The function will be re-invoked after `NextCheckTime' milliseconds.
 -spec is_outdated(logi_sink_file:filepath(), rotator()) ->
                                 {IsOutdated::boolean(), NextCheckTime::timeout(), rotator()}.
 is_outdated(FilePath, {Module, State0}) ->

@@ -1,7 +1,8 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc ログメッセージのファイルへの書き込みを行うためのプロセス
+%% @doc A sink process and writer for logi_sink_file module
 %% @private
+%% @end
 -module(logi_sink_file_writer).
 
 -behaviour(logi_sink_writer).
@@ -48,7 +49,7 @@
 %% @doc Starts a new file agent
 -spec start_link(start_arg()) -> {ok, pid()} | {error, Reason::term()}.
 start_link(Arg) ->
-    gen_server:start_link(?MODULE, [Arg], []).
+    gen_server:start_link(?MODULE, Arg, []).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback Functions

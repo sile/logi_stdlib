@@ -2,7 +2,7 @@
 %%
 %% @doc A sink which prints log messages to the console
 %%
-%% == NOTE==
+%% == NOTE ==
 %%
 %% The sink has no overload protections,
 %% so it is recommended to use it together with (for example) {@link logi_slink_flow_limiter}

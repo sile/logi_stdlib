@@ -1,13 +1,33 @@
 
 
 # Module logi_sink_file_rotator_daily #
+* [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+A logi_sink_file_rotator implementation which rotates files by day.
+
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_sink_file_rotator`](logi_sink_file_rotator.md).
 
+<a name="description"></a>
+
+## Description ##
+
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
+  > Rotator = logi_sink_file_rotator_daily:new().
+  > Sink = logi_sink_file:new(foo, "/tmp/{YYYY}-{MM}-{DD}-sample.log", [{rotator, Rotator}]).
+  > {ok, _} = logi_channel:install_sink(Sink, debug).
+  > logi:info("hello world").
+  > file:read_file("/tmp/2015-11-04-sample.log").
+  {ok,<<"2015-11-04 00:47:39.105 [info] nonode@nohost <0.114.0> erl_eval:do_apply:673 [] hello world\n">>}
+```
 <a name="index"></a>
 
 ## Function Index ##

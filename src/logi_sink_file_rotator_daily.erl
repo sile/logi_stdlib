@@ -1,9 +1,21 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc A logi_sink_file_rotator implementation which rotates files by day
+%%
+%% == EXAMPLE ==
+%% <pre lang="erlang">
+%% > Rotator = logi_sink_file_rotator_daily:new().
+%% > Sink = logi_sink_file:new(foo, "/tmp/{YYYY}-{MM}-{DD}-sample.log", [{rotator, Rotator}]).
+%% > {ok, _} = logi_channel:install_sink(Sink, debug).
+%% > logi:info("hello world").
+%% > file:read_file("/tmp/2015-11-04-sample.log").
+%% {ok,&lt;&lt;"2015-11-04 00:47:39.105 [info] nonode@nohost &lt;0.114.0&gt; erl_eval:do_apply:673 [] hello world\n"&gt;&gt;}
+%% </pre>
 %% @end
 %%
-%% 日にち単位でログファイルのローテーションを行うための`logi_sink_file_rotator'の実装モジュール
+%% TODO: 以下を英訳して、Edocドキュメントに含める
 %%
-%% {@link logi_sink_file:start_writer/3}の第二引数で渡したファイルパスは、以下のルールに従い展開される:
+%% {@link logi_sink_file:new/3}の第二引数で渡したファイルパスは、以下のルールに従い展開される:
 %% - パス中の文字列`{YY}'は、現在の年の下二桁に置換される
 %% - パス中の文字列`{YYYY}'は、現在の年で置換される (四桁に足りない場合は`0'でパディング)
 %% - パス中の文字列`{MM}`は、現在の月で置換される (二桁に足りない場合は`0'でパディング)
@@ -12,16 +24,6 @@
 %% このモジュールが担当するのは、上記ルールに基づくログファイルパスの展開と、
 %% 日を跨いだタイミングでのローテーションの実施、のみで実際のローテーション処理(e.g. ファイルを圧縮するかどうか)は、
 %% 他の`logi_sink_file_rotator'の実装モジュールに委譲されている。
-%%
-%% == EXAMPLE ==
-%% <pre lang="erlang">
-%% > Rotator = logi_sink_file_rotator_daily:new().
-%% > {ok, _} = logi_sink_file:start_writer(sample_file_writer, &lt;&lt;/tmp/{YYYY}-{MM}-{DD}-sample.log"&gt;&gt;, [{rotator, Rotator}]).
-%% > {ok, _} = logi_channel:install_sink(debug, logi_sink_file:new(sample_file_writer)).
-%% > logi:info("hello world").
-%% > file:read_file("/tmp/2015-11-04-sample.log").
-%% {ok,&lt;&lt;"2015-11-04 00:47:39.105 [info] nonode@nohost &lt;0.114.0&gt; erl_eval:do_apply:673 [] hello world\n"&gt;&gt;}
-%% </pre>
 -module(logi_sink_file_rotator_daily).
 
 -behaviour(logi_sink_file_rotator).
@@ -41,7 +43,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new(logi_sink_file_rotator_noop:new())
 -spec new() -> logi_sink_file_rotator:rotator().
-new() -> new(logi_sink_file_rotator_noop:new()).
+new() ->
+    new(logi_sink_file_rotator_noop:new()).
 
 %% @doc Creates a new rotator instance
 -spec new(logi_sink_file_rotator:rotator()) -> logi_sink_file_rotator:rotator().
