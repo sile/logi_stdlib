@@ -1,9 +1,10 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc A handler for the standard error_logger module to forward log messages
+%%
+%% If {@link install/1} is invoked, then the messages issued via `error_logger' module are forwarded to a logi channel.
+%%
 %% @end
-%%
-%% 標準の`error_logger'に出力されたログをlogiに転送するためのソース
-%%
-%% TODO: 全体的に整理
 -module(logi_source_error_logger).
 
 -behaviour(gen_event).
@@ -13,7 +14,6 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([install/0, install/1]).
 -export([uninstall/0]).
-
 -export([default_log_fun/2]).
 
 -export_type([options/0, option/0]).
@@ -28,7 +28,6 @@
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
 -define(STATE, ?MODULE).
-
 -record(?STATE,
         {
           logger                :: logi:logger_instance(),
@@ -39,11 +38,12 @@
         }).
 
 -type log_fun() :: fun ((error_logger_event(), logi:logger_instance()) -> logi:logger_instance()).
-%%
-
-%% `error_logger'のログを`logi'に転送するための関数のインタフェース
+%% A function which forwards log messages to a logi channel
 
 -type group_leader() :: pid().
+%% The PID of a group leader.
+%%
+%% See official document of `error_logger' for more information on "group leader".
 
 -type error_logger_event() :: {error,          group_leader(), {pid(), io:format(), logi_layout:data()}}
                             | {error_report,   group_leader(), {pid(), std_error, Report :: term()}}
@@ -54,28 +54,46 @@
                             | {info_msg,       group_leader(), {pid(), io:format(), logi_layout:data()}}
                             | {info_report,    group_leader(), {pid(), std_info, Report :: term()}}
                             | {info_report,    group_leader(), {pid(), Type :: term(), Report :: term()}}.
+%% An event which is send by `error_logger'.
 %%
-
-%% `error_logger'が送信するイベント
-%%
-%% [error_logger#Events](http://www.erlang.org/doc/man/error_logger.html#id115197)より抜粋
+%% The list is excerpted from [error_logger#Events](http://www.erlang.org/doc/man/error_logger.html#id115197).
 
 -type options() :: [option()].
+
 -type option() :: {logger, logi:logger()}
                 | {forward_logger, logi:logger()}
                 | {max_message_queue_len, non_neg_integer()}
                 | {log_fun, log_fun()}.
+%% logger:
+%% - The logger instance which is used to report internal events of the handler
+%% - default: `logi:default_logger()'
+%%
+%% forward_logger:
+%% - The logger instance which is used to forward log messages issued via `error_logger'
+%% - default: `logi:default_logger()'
+%%
+%% max_message_queue_len:
+%% - Maximum message queue length of the `error_logger' process
+%% - While the length exceeds the value, new arrival messages will not be forwarded (i.e., discarded)
+%% - default: `128'
+%%
+%% log_fun:
+%% - Log messages forwarding function
+%% - default: `fun logi_source_error_logger:default_log_fun/2'
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv install([])
-install() -> install([]).
+-spec install() -> ok | {error, Reason :: term()}.
+install() ->
+    install([]).
 
--spec install(options()) -> ok | {error, Reason::term()}.
+%% @doc Installs the `error_logger' handler
+-spec install(options()) -> ok | {error, Reason :: term()}.
 install(Options) ->
     ForwardLogger = proplists:get_value(forward_logger, Options, logi:default_logger()),
-    Logger = proplists:get_value(logger, Options, ForwardLogger),
+    Logger = proplists:get_value(logger, Options, logi:default_logger()),
     MaxLen = proplists:get_value(max_message_queue_len, Options, 128),
     LogFun = proplists:get_value(log_fun, Options, fun ?MODULE:default_log_fun/2),
     _ = logi:is_logger(ForwardLogger) orelse error(badarg, [Options]),
@@ -89,6 +107,7 @@ install(Options) ->
         Other           -> {error, Other}
     end.
 
+%% @doc Uninstalls the handler
 -spec uninstall() -> ok | {error, Reason::term()}.
 uninstall() ->
     case error_logger:delete_report_handler(?MODULE) of
@@ -96,6 +115,36 @@ uninstall() ->
         {error, Reason} -> {error, Reason};
         Other           -> {error, Other}
     end.
+
+%% @doc Default forwarding function
+-spec default_log_fun(error_logger_event(), logi:logger_instance()) -> logi:logger_instance().
+default_log_fun(Event = {Tag, Gleader, {Sender, Arg1, Arg2}}, Logger) ->
+    {LogType, Severity} =
+        case Tag of
+            error          -> {message, error};
+            warning_msg    -> {message, warning};
+            info_msg       -> {message, info};
+            error_report   -> {report, error};
+            warning_report -> {report, warning};
+            info_report    -> {report, info};
+            _              -> {system, warning}
+        end,
+    {Format, Data} =
+        case LogType of
+            message -> {Arg1, Arg2};
+            report  -> {"~p", [Arg2]};
+            system  -> {"Unknown event: ~p", [Event]}
+        end,
+    Headers =
+        case LogType of
+            message -> #{gleader => Gleader, sender => Sender};
+            report  -> #{gleader => Gleader, sender => Sender, type => Arg1};
+            system  -> #{}
+        end,
+    Location = logi_location:guess_location(),
+    logi:log(Severity, Format, Data, [{logger, Logger}, {headers, Headers}, {location, Location}]);
+default_log_fun(Event, Logger) ->
+    logi:warning("Unknown event: ~p", [Event], [{logger, Logger}]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_event' Callback Functions
@@ -127,12 +176,12 @@ handle_event(Event, State0) ->
 
 %% @private
 handle_call(Request, State) ->
-    Logger = logi:warning("Unknown call: ~p", [Request], [{logger, State#?STATE.logger}, {metadata, #{log_type => system}}]),
+    Logger = logi:warning("Unknown call: ~p", [Request], [{logger, State#?STATE.logger}]),
     {ok, {error, {unknown_call, Request}}, State#?STATE{logger = Logger}}.
 
 %% @private
 handle_info(Info, State) ->
-    Logger = logi:warning("Unknown info: ~p", [Info], [{logger, State#?STATE.logger}, {metadata, #{log_type => system}}]),
+    Logger = logi:warning("Unknown info: ~p", [Info], [{logger, State#?STATE.logger}]),
     {ok, State#?STATE{logger = Logger}}.
 
 %% @private
@@ -156,39 +205,9 @@ drop_overflowed_messages(State) ->
     case Len =< Max of
         true  -> State;
         false ->
+            DropCount = Len - Max,
             Logger =
                 logi:warning("The max_message_queue_len is exceeded (~p > ~p). The following ~p events will be discarded.",
-                             [Len, Max, Len - Max], [{logger, State#?STATE.logger}, {metadata, #{log_type => system}}]),
-            State#?STATE{drop_count = Len - Max, logger = Logger}
+                             [Len, Max, DropCount], [{logger, State#?STATE.logger}]),
+            State#?STATE{drop_count = DropCount, logger = Logger}
     end.
-
--spec default_log_fun(error_logger_event(), logi:logger_instance()) -> logi:logger_instance().
-default_log_fun(Event = {Tag, Gleader, {Sender, Arg1, Arg2}}, Logger) ->
-    {LogType, Severity} =
-        case Tag of
-            error          -> {message, error};
-            warning_msg    -> {message, warning};
-            info_msg       -> {message, info};
-            error_report   -> {report, error};
-            warning_report -> {report, warning};
-            info_report    -> {report, info};
-            _              -> {system, warning}
-        end,
-    {Format, Data} =
-        case LogType of
-            message -> {Arg1, Arg2};
-            report  -> {"~p", [Arg2]};
-            system  -> {"Unknown event: ~p", [Event]}
-        end,
-    Headers =
-        case LogType of
-            message -> #{gleader => Gleader, sender => Sender};
-            report  -> #{gleader => Gleader, sender => Sender, type => Arg1};
-            system  -> #{}
-        end,
-    MetaData =
-        #{log_type => LogType},
-    Location = logi_location:guess_location(),
-    logi:log(Severity, Format, Data, [{logger, Logger}, {headers, Headers}, {metadata, MetaData}, {location, Location}]);
-default_log_fun(Event, Logger) ->
-    logi:warning("Unknown event: ~p", [Event], [{logger, Logger}, {metadata, #{log_type => system}}]).
