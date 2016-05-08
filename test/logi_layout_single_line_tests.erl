@@ -1,4 +1,5 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 -module(logi_layout_single_line_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -11,7 +12,7 @@ new_test_() ->
     [
      {"Creates a layout instance",
       fun () ->
-              Layout = logi_layout_single_line:new(logi_layout_raw:new()),
+              Layout = logi_layout_single_line:new(logi_layout_io_lib_format:new()),
               ?assert(logi_layout:is_layout(Layout))
       end},
      {"[ERROR] Invalid argument",
@@ -25,13 +26,9 @@ format_test_() ->
      {"Formats a log message",
       fun () ->
               Context = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}),
-              Layout = logi_layout_single_line:new(logi_layout_raw:new()),
+              Layout = logi_layout_single_line:new(logi_layout_io_lib_format:new()),
               ?assertEqual(
                  <<"hello world">>,
-                 iolist_to_binary(logi_layout:format(Context, "", ["hello \r\nw\n  \t\r\t\t  or\nl\rd\n"], Layout)))
-              %% TODO: delete
-              %% ?assertEqual(
-              %%    <<"hello world\n">>,
-              %%    iolist_to_binary(logi_layout:format(Context, "", ["hello \r\nw\n  \t\r\t\t  or\nl\rd\n"], Layout)))
+                 iolist_to_binary(logi_layout:format(Context, "hello \r\nw\n  \t\r\t\t  or\nl\rd\n", [], Layout)))
       end}
     ].

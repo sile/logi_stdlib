@@ -1,4 +1,5 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 -module(logi_layout_limit_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -11,22 +12,23 @@ new_test_() ->
     [
      {"Creates a layout instance",
       fun () ->
-              Layout0 = logi_layout_limit:new(logi_layout_raw:new()),
+              Layout0 = logi_layout_limit:new(logi_layout_io_lib_format:new()),
               ?assert(logi_layout:is_layout(Layout0)),
 
-              Layout1 = logi_layout_limit:new(logi_layout_raw:new(), [{max_width, 1}, {max_depth, 1}, {max_size, 1}]),
+              Layout1 = logi_layout_limit:new(logi_layout_io_lib_format:new(),
+                                              [{max_width, 1}, {max_depth, 1}, {max_size, 1}]),
               ?assert(logi_layout:is_layout(Layout1)),
 
-              Layout2 = logi_layout_limit:new(logi_layout_raw:new(),
+              Layout2 = logi_layout_limit:new(logi_layout_io_lib_format:new(),
                                               [{max_width, infinity}, {max_depth, infinity}, {max_size, infinity}]),
               ?assert(logi_layout:is_layout(Layout2))
       end},
      {"[ERROR] Invalid argument",
       fun () ->
               ?assertError(badarg, logi_layout_limit:new(123)), % Not a layout
-              ?assertError(badarg, logi_layout_limit:new(logi_layout_raw:new(), [{max_width, 0}])),
-              ?assertError(badarg, logi_layout_limit:new(logi_layout_raw:new(), [{max_depth, 0}])),
-              ?assertError(badarg, logi_layout_limit:new(logi_layout_raw:new(), [{max_size, 0}]))
+              ?assertError(badarg, logi_layout_limit:new(logi_layout_io_lib_format:new(), [{max_width, 0}])),
+              ?assertError(badarg, logi_layout_limit:new(logi_layout_io_lib_format:new(), [{max_depth, 0}])),
+              ?assertError(badarg, logi_layout_limit:new(logi_layout_io_lib_format:new(), [{max_size, 0}]))
       end}
     ].
 
