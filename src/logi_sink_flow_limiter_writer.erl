@@ -1,9 +1,8 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc メッセージの流量制御用シンクのサーバ側モジュール
+%% @doc A sink process and writer for logi_sink_flow_limiter module
 %% @private
-%%
-%% TODO: 全体的に整理
+%% @end
 -module(logi_sink_flow_limiter_writer).
 
 -behaviour(logi_sink_writer).
@@ -29,7 +28,6 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
-%% TODO: option
 -define(REPORT_OMISSIONS_INTERVAL, (60 * 1000)).
 -define(CHECK_WRITEE_INTERVAL, (1 * 1000)).
 
@@ -49,7 +47,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Starts a new server
+%% @doc Starts a new process
 -spec start_link(start_arg()) -> {ok, pid()} | {error, Reason::term()}.
 start_link(Arg) ->
     gen_server:start_link(?MODULE, Arg, []).
@@ -84,8 +82,8 @@ init({Logger, MaxLen, WriteLimits, BaseSink}) ->
     _ = logi:save_as_default(Logger),
     case logi_sink_proc:start_child(BaseSink) of
         {error, Reason} -> {stop, Reason};
-        {ok, ChildId}   ->
-            _ = link(ChildId),
+        {ok, SinkSup}   ->
+            _ = link(SinkSup),
             Table = ets:new(?MODULE, [public, {write_concurrency, true}]),
             State0 =
                 #?STATE{
@@ -143,7 +141,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_sink_writer(logi_sink_writer:writer()|undefined, #?STATE{}) -> {noreply, #?STATE{}}.
 handle_sink_writer(BaseWriter, State0) ->
-    _ = logi:info("Base writer is udpated: ~p", [BaseWriter]),
+    _ = logi:info("Base writer is updated: ~p", [BaseWriter]),
     Writer =
         case BaseWriter of
             undefined -> undefined;
@@ -217,7 +215,7 @@ notify_omission(Id, Tag, Context) ->
     Channel = logi_context:get_channel(Context),
     Severity = logi_context:get_severity(Context),
     Key = {omissions, Tag, Channel, Severity},
-    Count = ets:update_counter(Id, Key, {2, 1}, {Key, 0}), % OTP-18 only
+    Count = ets:update_counter(Id, Key, {2, 1}, {Key, 0}),
     case Count < 5 of
         false -> ok;
         true  ->

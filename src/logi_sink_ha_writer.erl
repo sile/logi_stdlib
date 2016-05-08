@@ -1,5 +1,6 @@
 %% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
-%% @doc TODO
+%%
+%% @doc A sink process and writer for logi_sink_ha module
 %% @private
 %% @end
 -module(logi_sink_ha_writer).
@@ -33,7 +34,7 @@
           sink            :: logi_sink:sink(),
           restart         :: logi_sink_ha:restart_strategy(),
           writer          :: logi_sink_writer:writer() | undefined,
-          child_id        :: logi_sink_proc:child_id() | undefined,
+          sink_sup        :: logi_sink_proc:sink_sup() | undefined,
           retry_count = 0 :: non_neg_integer(),
           started_at      :: erlang:timestamp() | undefined
         }).
@@ -61,7 +62,7 @@ start_link(Arg) ->
 %% @private
 write(Context, Format, Data, Table) ->
     case select_writer(Table) of
-        error        -> []; %% TODO: report omission and notify stopped
+        error        -> []; % TODO: report omission
         {ok, Writer} -> logi_sink_writer:write(Context, Format, Data, Writer)
     end.
 
@@ -84,7 +85,6 @@ init({Peers, Logger, Strategy}) ->
     true = ets:insert(Table, {availables, 0}),
     State1 = lists:foldl(fun start_peer/2, State0,
                          [#peer{id = logi_sink:get_id(S), sink = S, restart = R} || #{sink := S, restart := R} <- Peers]),
-    %% TODO: ok = schedule_omission_report(),
     {ok, State1}.
 
 %% @private
@@ -99,7 +99,7 @@ handle_cast(_Request, State) ->
 handle_info({restart, Arg}, State) ->
     handle_restart(Arg, State);
 handle_info({'DOWN', _, _, Pid, Reason}, State) ->
-    _ = logi:error("Writer ~p is down: reason=~p", [Pid, Reason]), % TODO: ログは全体的に見直し
+    _ = logi:error("Writer ~p is down: reason=~p", [Pid, Reason]),
     handle_down(Pid, State);
 handle_info({sink_writer, ChildId, Writer}, State) ->
     handle_sink_writer(ChildId, Writer, State);
@@ -125,22 +125,26 @@ start_peer(Peer0, State) ->
                 _ = logi:error("Can't start sink: id=~s, reason=~p", [Peer0#peer.id, Reason]),
                 ok = schedule_restart(Peer0),
                 Peer0#peer{started_at = undefined};
-            {ok, ChildId} ->
-                _ = monitor(process, ChildId),
-                Peer0#peer{child_id = ChildId, started_at = erlang:timestamp()}
+            {ok, SinkSup} ->
+                _ = monitor(process, SinkSup),
+                Peer0#peer{sink_sup = SinkSup, started_at = erlang:timestamp()}
         end,
     Peers = lists:keystore(Peer0#peer.id, #peer.id, State#?STATE.peers, Peer1),
     State#?STATE{peers = Peers}.
 
--spec handle_down(logi_sink_proc:child_id(), #?STATE{}) -> {noreply, #?STATE{}}.
-handle_down(ChildId, State0) ->
-    Peer0 = #peer{} = lists:keyfind(ChildId, #peer.child_id, State0#?STATE.peers),
+-spec handle_down(logi_sink_proc:sink_sup(), #?STATE{}) -> {noreply, #?STATE{}}.
+handle_down(SinkSup, State0) ->
+    Peer0 = #peer{} = lists:keyfind(SinkSup, #peer.sink_sup, State0#?STATE.peers),
     Peer1 =
         Peer0#peer{
-          child_id = undefined,
+          sink_sup = undefined,
           writer = undefined,
           started_at = undefined,
-          retry_count = 0 % TODO: 最後の起動時刻からの経過時間を測定して、ゼロリセットするかどうかを決定する
+          retry_count =
+              case has_enough_time_elapsed(Peer0) of
+                  true  -> 0;
+                  false -> Peer0#peer.retry_count
+              end
          },
     Peers = lists:keystore(Peer1#peer.id, #peer.id, State0#?STATE.peers, Peer1),
     State1 = State0#?STATE{peers = Peers},
@@ -155,9 +159,9 @@ handle_restart(Id, State0) ->
     State1 = start_peer(Peer1, State0),
     {noreply, State1}.
 
--spec handle_sink_writer(logi_sink_proc:child_id(), logi_sink_writer:writer() | undefined, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_writer(ChildId, Writer, State0) ->
-    Peer0 = #peer{} = lists:keyfind(ChildId, #peer.child_id, State0#?STATE.peers),
+-spec handle_sink_writer(logi_sink_proc:sink_sup(), logi_sink_writer:writer() | undefined, #?STATE{}) -> {noreply, #?STATE{}}.
+handle_sink_writer(SinkSup, Writer, State0) ->
+    Peer0 = #peer{} = lists:keyfind(SinkSup, #peer.sink_sup, State0#?STATE.peers),
     case Peer0#peer.writer =:= Writer of
         true  -> {noreply, State0};
         false ->
@@ -222,3 +226,15 @@ select_writer(Table) ->
                 [{_, Writer}] -> {ok, Writer}
             end
     end.
+
+-spec has_enough_time_elapsed(#peer{}) -> boolean().
+has_enough_time_elapsed(#peer{started_at = undefined}) ->
+    false;
+has_enough_time_elapsed(Peer) ->
+    EnoughDuration =
+        case Peer#peer.restart of
+            #{interval := {_, Max}} -> Max;
+            #{interval := Interval} -> Interval
+        end,
+    Elapsed = timer:now_diff(erlang:timestamp(), Peer#peer.started_at) div 1000,
+    Elapsed >= EnoughDuration.
