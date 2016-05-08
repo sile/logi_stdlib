@@ -1,8 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% TODO: doc
-%%
-%% TODO: anonymous function (= non full quialified function) is not recommended
+%% @doc A logi_layout implementation which gives color to tty output messages
+%% @end
 -module(logi_layout_color).
 
 -behaviour(logi_layout).
@@ -23,21 +22,25 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type color_fun() :: fun ((logi_context:context()) -> iodata()). % TODO: more doc
+-type color_fun() :: fun ((logi_context:context()) -> iodata()).
+%% A function which returns ANSI escape code associated with given message context
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new(BaseLayout, fun logi_layout_color:default_color/1)
 -spec new(logi_layout:layout()) -> logi_layout:layout().
-new(BaseLayout) -> new(BaseLayout, fun ?MODULE:default_color/1).
+new(BaseLayout) ->
+    new(BaseLayout, fun ?MODULE:default_color/1).
 
+%% @doc Creates a new layout instance
 -spec new(logi_layout:layout(), color_fun()) -> logi_layout:layout().
 new(BaseLayout, Color) ->
     _ = logi_layout:is_layout(BaseLayout) orelse error(badarg, [BaseLayout, Color]),
     _ = is_function(Color, 1) orelse error(badarg, [BaseLayout, Color]),
     logi_layout:new(?MODULE, {BaseLayout, Color}).
 
+%% @doc Default color mapping function
 -spec default_color(logi_context:context()) -> iodata().
 default_color(Context) ->
     case logi_context:get_severity(Context) of
@@ -58,4 +61,3 @@ default_color(Context) ->
 format(Context, Format, Data, {Layout, Color}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     [Color(Context), FormattedData, "\e[0m"].
-    %% TODO: delete: [Color(Context), re:replace(FormattedData, "(\r|\n|)$", "\e[0m\\1")].

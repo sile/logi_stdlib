@@ -1,6 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Utility functions for logi_layout
+%% @end
 -module(logi_lib_layout).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -11,7 +12,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec term_to_iodata(term()) -> iodata().
+%% @doc Converts a term to a readable string(iodata)
+-spec term_to_iodata(V :: term()) -> iodata().
 term_to_iodata(V) when is_binary(V)    -> V;
 term_to_iodata(V) when is_atom(V)      -> atom_to_list(V);
 term_to_iodata(V) when is_integer(V)   -> integer_to_list(V);

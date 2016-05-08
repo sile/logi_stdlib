@@ -1,8 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
-%%
-%% TODO: doc
+%% @doc A logi_layout implementation which appends newline character(s) to tail of output messages
+%% @end
 -module(logi_layout_newline).
 
 -behaviour(logi_layout).
@@ -22,13 +21,15 @@
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -type style() :: lf | cr | crlf.
+%% Newline Style
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new(BaseLayout, lf)
 -spec new(logi_layout:layout()) -> logi_layout:layout().
-new(BaseLayout) -> new(BaseLayout, lf).
+new(BaseLayout) ->
+    new(BaseLayout, lf).
 
 %% @doc Creates a new layout instance
 -spec new(logi_layout:layout(), style()) -> logi_layout:layout().

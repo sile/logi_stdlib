@@ -1,26 +1,29 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
-%% @end
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% コンソール出力用のシンク
+%% @doc A sink which prints log messages to the console
 %%
-%% == NOTE ==
-%% このシンク自体には過負荷防止の仕組みはないので本番環境で使用する場合は{@link logi_sink_flow_limiter}等との併用が推奨される。
-%% また調査時に一時的にログを出力したいだけなら`logi_channel:install_sink_option/0'の`lifetime'オプションの指定を検討しても良い。
+%% == NOTE==
+%%
+%% The sink has no overload protections,
+%% so it is recommended to use it together with (for example) {@link logi_slink_flow_limiter}
+%% in a production environment.
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
-%% > logi_channel:install_sink(info, logi_sink_console:new()).
+%% > error_logger:tty(false). % Suppresses annoying warnings for the sake of brevity
+%% >
+%% > logi_channel:install_sink(logi_sink_console:new(foo), info).
 %% > logi:info("hello world").
 %% 2015-11-03 10:58:59.920 [info] nonode@nohost &lt;0.113.0&gt; erl_eval:do_apply:673 [] hello world
 %% </pre>
 %%
-%% 別のレイアウトで出力する:
+%% Uses other layout:
 %% <pre lang="erlang">
-%% > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format(Format, Data) end),
-%% > logi_channel:install_sink(info, logi_sink_console:new(), [{layout, Layout}, {if_exists, supersede}]).
+%% > logi_channel:install_sink(logi_sink_console:new(foo, logi_layout_io_lib_format:new()), info).
 %% > logi:info("hello world").
 %% hello world
 %% </pre>
+%% @end
 -module(logi_sink_console).
 
 -behaviour(logi_sink_writer).
@@ -29,6 +32,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1, new/2]).
+-export([default_layout/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback API
@@ -38,16 +42,23 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% %% @equiv new(logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))))
+%% @equiv new(SinkId, default_layout())
 -spec new(logi_sink:id()) -> logi_sink:sink().
 new(SinkId) ->
-    new(SinkId, logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())))).
+    new(SinkId, default_layout()).
 
-%% @doc Creates a new sink instance
+%% @doc Creates a new sink
 -spec new(logi_sink:id(), logi_layout:layout(unicode:chardata())) -> logi_sink:sink().
 new(SinkId, Layout) ->
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Layout]),
     logi_sink:from_writer(SinkId, logi_sink_writer:new(?MODULE, Layout)).
+
+%% @doc Default layout
+%%
+%% `Layout' is `logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new())))'
+-spec default_layout() -> Layout :: logi_layout:layout(unicode:chardata()).
+default_layout() ->
+    logi_layout_newline:new(logi_layout_color:new(logi_layout_limit:new(logi_layout_default:new()))).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback Functions

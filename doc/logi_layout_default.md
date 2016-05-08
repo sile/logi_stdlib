@@ -5,12 +5,20 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-TODO.
+A logi_layout implementation which is used as the default layout in this application.
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_layout`](logi_layout.md).
 
+<a name="description"></a>
+
+## Description ##
+This module layouts a log message by the following format:
+
+```
+  {yyyy}-{MM}-{dd} {HH}:{mm}:{ss}.{SSS} [{SEVERITY}] {NODE} {PID} {MODULE}:{FUNCTION}:{LINE} [{HEADER(KEY=VALUE)}*] {MESSAGE}
+```
 <a name="index"></a>
 
 ## Function Index ##
@@ -28,7 +36,7 @@ __Behaviours:__ [`logi_layout`](logi_layout.md).
 ### new/0 ###
 
 <pre><code>
-new() -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+new() -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout</a>(binary())
 </code></pre>
 <br />
 

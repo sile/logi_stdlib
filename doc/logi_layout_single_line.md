@@ -5,9 +5,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-TODO.
+A logi_layout implementation which removes newline characters from output messages.
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_layout`](logi_layout.md).
 

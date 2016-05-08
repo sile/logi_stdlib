@@ -1,8 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
-%%
-%% TODO: doc
+%% @doc A logi_layout implementation which removes newline characters from output messages
+%% @end
 -module(logi_layout_single_line).
 
 -behaviour(logi_layout).
@@ -33,4 +32,3 @@ new(BaseLayout) ->
 format(Context, Format, Data, Layout) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     re:replace(FormattedData, "(\r|\n|\r\n)\\s*", "", [global, multiline]).
-    %% TODO: delete: re:replace(FormattedData, "(\r|\n|\r\n)\\s*(.)", "\\2", [global, multiline]).

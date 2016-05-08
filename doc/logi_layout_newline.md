@@ -6,9 +6,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-TODO.
+A logi_layout implementation which appends newline character(s) to tail of output messages.
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_layout`](logi_layout.md).
 
@@ -25,6 +25,8 @@ __Behaviours:__ [`logi_layout`](logi_layout.md).
 <pre><code>
 style() = lf | cr | crlf
 </code></pre>
+
+ Newline Style
 
 <a name="index"></a>
 

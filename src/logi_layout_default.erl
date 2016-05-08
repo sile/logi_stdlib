@@ -1,6 +1,12 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc A logi_layout implementation which is used as the default layout in this application
+%%
+%% This module layouts a log message by the following format:
+%% ```
+%% {yyyy}-{MM}-{dd} {HH}:{mm}:{ss}.{SSS} [{SEVERITY}] {NODE} {PID} {MODULE}:{FUNCTION}:{LINE} [{HEADER(KEY=VALUE)}*] {MESSAGE}
+%% '''
+%% @end
 -module(logi_layout_default).
 
 -behaviour(logi_layout).
@@ -19,14 +25,14 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a new layout instance
--spec new() -> logi_layout:layout(). % TODO: layout/1
-new() -> logi_layout:new(?MODULE).
+-spec new() -> logi_layout:layout(binary()).
+new() ->
+    logi_layout:new(?MODULE).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec format(logi_context:context(), io:format(), logi_layout:data(), undefined) -> iodata().
 format(Context, Format, Data, _) ->
     Location = logi_context:get_location(Context),
     FormattedData =
@@ -43,12 +49,11 @@ format(Context, Format, Data, _) ->
            format_headers(logi_context:get_headers(Context)) |
            Data
           ]),
-    unicode:characters_to_binary(FormattedData). % TODO: optimize
+    unicode:characters_to_binary(FormattedData). % FIXME: optimize
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% TODO: logi_lib_layout:format_timestamp/1
 -spec format_timestamp(erlang:timestamp()) -> iodata().
 format_timestamp(Timestamp) ->
     {_, _, Micros} = Timestamp,
