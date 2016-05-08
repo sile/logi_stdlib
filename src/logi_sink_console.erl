@@ -1,6 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc コンソール出力用のシンク
+%% コンソール出力用のシンク
 %%
 %% == NOTE ==
 %% このシンク自体には過負荷防止の仕組みはないので本番環境で使用する場合は{@link logi_sink_flow_limiter}等との併用が推奨される。

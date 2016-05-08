@@ -1,21 +1,14 @@
 
 
 # Module logi_filter_logical #
-* [Description](#description)
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
-
-論理演算を用いて複数のフィルタを結合するためのフィルタ.
 
 Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_filter`](logi_filter.md).
 
-<a name="description"></a>
-
-## Description ##
-式は短絡評価される
 <a name="types"></a>
 
 ## Data Types ##
@@ -29,8 +22,6 @@ __Behaviours:__ [`logi_filter`](logi_filter.md).
 <pre><code>
 expression() = {'not', <a href="#type-expression">expression()</a>} | {'and', [<a href="#type-expression">expression()</a>]} | {'or', [<a href="#type-expression">expression()</a>]} | <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
 </code></pre>
-
- 論理演算式
 
 <a name="index"></a>
 

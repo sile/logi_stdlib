@@ -1,6 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc ファイルのローテーション機能を提供するモジュール用のインターフェース定義
+%% ファイルのローテーション機能を提供するモジュール用のインターフェース定義
 -module(logi_sink_file_rotator).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -55,7 +56,7 @@ new(Module, State) ->
 is_rotator({Module, _}) -> is_callback_module(Module);
 is_rotator(_)           -> false.
 
-%% @doc `FilePath'のローテーションを行う
+%% `FilePath'のローテーションを行う
 %%
 %% ローテート結果のファイルパスは`Rotated'として返される。
 %%
@@ -68,7 +69,7 @@ rotate(FilePath, {Module, State0}) ->
         {ok, Rotated, State1} -> {ok, Rotated, {Module, State1}}
     end.
 
-%% @doc 現在のログファイルの出力先パスを返す
+%% 現在のログファイルの出力先パスを返す
 -spec get_current_filepath(logi_sink_file:filepath(), rotator()) ->
                                   {ok, logi_sink_file:filepath(), rotator()} | {error, Reason::term()}.
 get_current_filepath(BaseFilePath, {Module, State0}) ->
@@ -77,7 +78,7 @@ get_current_filepath(BaseFilePath, {Module, State0}) ->
         {ok, FilePath, State1} -> {ok, FilePath, {Module, State1}}
     end.
 
-%% @doc 指定されたログファイルのパスが古くないかどうかを判定する
+%% 指定されたログファイルのパスが古くないかどうかを判定する
 %%
 %% `IsOutdated'が`false'の場合は、writerプロセスは{@link rotate/2}を呼び出して古いファイルをローテートした上で、
 %% {@link get_current_filepath/2}で取得したファイルをオープンし、以降はそのファイルに対してログメッセージの書き込みを行うようになる。

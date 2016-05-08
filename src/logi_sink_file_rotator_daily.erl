@@ -1,6 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc 日にち単位でログファイルのローテーションを行うための`logi_sink_file_rotator'の実装モジュール
+%% 日にち単位でログファイルのローテーションを行うための`logi_sink_file_rotator'の実装モジュール
 %%
 %% {@link logi_sink_file:start_writer/3}の第二引数で渡したファイルパスは、以下のルールに従い展開される:
 %% - パス中の文字列`{YY}'は、現在の年の下二桁に置換される

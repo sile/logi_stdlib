@@ -1,6 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc ログの出力量を制御するためのシンク
+%% ログの出力量を制御するためのシンク
 %%
 %% このシンクはログ出力の際に、以下の判定を行う:
 %% - ログの書き込み先プロセスが生きているか
@@ -58,6 +59,8 @@
 -type agent_option() :: {logger, logi:logger()}
                       | {max_message_queue_len, non_neg_integer()}
                       | {write_rate_limits, [write_rate()]}.
+%%
+
 %% `logger':
 %% - limiterが使用するロガー
 %% - 破棄されたメッセージの情報等は、このロガーを使って報告される
@@ -76,6 +79,8 @@
 %% - default: `[]'
 
 -type write_rate() :: {Bytes::non_neg_integer(), Period::pos_integer()}. % TODO: Period::pos_milliseconds()
+%%
+
 %% ログメッセージの書き込みレートの上限指定
 %%
 %% `Period'の期間中は、合計で`Bytes'までのメッセージ音書き込みが許容される

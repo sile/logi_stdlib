@@ -1,7 +1,8 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc Pairing heaps
+%% @doc Pairing Heaps
 %% @private
+%% @end
 -module(logi_util_heap).
 
 %%----------------------------------------------------------------------------------------------------------------------

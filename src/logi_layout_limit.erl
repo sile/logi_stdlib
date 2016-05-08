@@ -1,8 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
 %% NOTE: headers is not limited
-%%
-%% @doc TODO
 %%
 %% memo:
 %% 以下くらいがちょうど良いかも:

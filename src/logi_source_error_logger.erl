@@ -1,6 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc 標準の`error_logger'に出力されたログをlogiに転送するためのソース
+%% 標準の`error_logger'に出力されたログをlogiに転送するためのソース
 %%
 %% TODO: 全体的に整理
 -module(logi_source_error_logger).
@@ -38,6 +39,8 @@
         }).
 
 -type log_fun() :: fun ((error_logger_event(), logi:logger_instance()) -> logi:logger_instance()).
+%%
+
 %% `error_logger'のログを`logi'に転送するための関数のインタフェース
 
 -type group_leader() :: pid().
@@ -51,6 +54,8 @@
                             | {info_msg,       group_leader(), {pid(), io:format(), logi_layout:data()}}
                             | {info_report,    group_leader(), {pid(), std_info, Report :: term()}}
                             | {info_report,    group_leader(), {pid(), Type :: term(), Report :: term()}}.
+%%
+
 %% `error_logger'が送信するイベント
 %%
 %% [error_logger#Events](http://www.erlang.org/doc/man/error_logger.html#id115197)より抜粋

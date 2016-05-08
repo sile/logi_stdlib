@@ -5,9 +5,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-`io_lib:format/2`を用いたレイアウト実装.
+A logi_layout implementation which uses 'io_lib:format/2' function to format log messages.
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_layout`](logi_layout.md).
 

@@ -1,6 +1,7 @@
-%% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc `io_lib:format/2'を用いたレイアウト実装
+%% @doc A logi_layout implementation which uses 'io_lib:format/2' function to format log messages
+%% @end
 -module(logi_layout_io_lib_format).
 
 -behaviour(logi_layout).

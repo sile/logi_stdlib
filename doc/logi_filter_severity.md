@@ -5,9 +5,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-深刻度に応じたフィルタリングを行うモジュール.
+A logi_filter implementation which filters log messages by given severity condition.
 
-Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_filter`](logi_filter.md).
 
@@ -28,9 +28,11 @@ __Behaviours:__ [`logi_filter`](logi_filter.md).
 ### new/1 ###
 
 <pre><code>
-new(SeverityCondition::<a href="logi_sink.md#type-severity_condition">logi_sink:severity_condition()</a>) -&gt; <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
+new(SeverityCondition::<a href="logi_condition.md#type-severity_condition">logi_condition:severity_condition()</a>) -&gt; <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
 </code></pre>
 <br />
 
 Creates a new filter instance
+
+If a log message does not match `SeverityCondition`, it is discarded by the filter.
 

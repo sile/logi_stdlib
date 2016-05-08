@@ -1,5 +1,6 @@
 %% @copyright 2015-2016 Takeru Ohta <phjgt308@gmail.com>
 %% @doc TODO
+%% @private
 %% @end
 -module(logi_sink_ha_writer).
 

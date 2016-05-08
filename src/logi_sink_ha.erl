@@ -1,6 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc 高可用性(HA, High Availability)を達成するための手段を提供するシンク
+%% 高可用性(HA, High Availability)を達成するための手段を提供するシンク
 %%
 %% 機能:
 %% - Active/StandBy構成による多重化

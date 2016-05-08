@@ -1,12 +1,9 @@
 
 
 # Module logi_source_error_logger #
-* [Description](#description)
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
-
-標準の`error_logger`に出力されたログをlogiに転送するためのソース.
 
 Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
 
@@ -26,10 +23,6 @@ __Behaviours:__ [`gen_event`](gen_event.md).
 error_logger_event() = {error, <a href="#type-group_leader">group_leader()</a>, {pid(), <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>}} | {error_report, <a href="#type-group_leader">group_leader()</a>, {pid(), std_error, Report::term()}} | {error_report, <a href="#type-group_leader">group_leader()</a>, {pid(), Type::term(), Report::term()}} | {warning_msg, <a href="#type-group_leader">group_leader()</a>, {pid(), <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>}} | {warning_report, <a href="#type-group_leader">group_leader()</a>, {pid(), std_warning, Report::term()}} | {warning_report, <a href="#type-group_leader">group_leader()</a>, {pid(), Type::term(), Report::term()}} | {info_msg, <a href="#type-group_leader">group_leader()</a>, {pid(), <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>}} | {info_report, <a href="#type-group_leader">group_leader()</a>, {pid(), std_info, Report::term()}} | {info_report, <a href="#type-group_leader">group_leader()</a>, {pid(), Type::term(), Report::term()}}
 </code></pre>
 
-`error_logger`が送信するイベント
-
-[error_logger#Events](http://www.erlang.org/doc/man/error_logger.html#id115197)より抜粋
-
 
 
 ### <a name="type-group_leader">group_leader()</a> ###
@@ -48,8 +41,6 @@ group_leader() = pid()
 <pre><code>
 log_fun() = fun((<a href="#type-error_logger_event">error_logger_event()</a>, <a href="logi.md#type-logger_instance">logi:logger_instance()</a>) -&gt; <a href="logi.md#type-logger_instance">logi:logger_instance()</a>)
 </code></pre>
-
-`error_logger`のログを`logi`に転送するための関数のインタフェース
 
 
 

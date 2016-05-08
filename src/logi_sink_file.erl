@@ -1,7 +1,7 @@
 %% @copyright 2015 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 %%
-%% @doc ファイル出力用のシンク
-%%
+%% ファイル出力用のシンク
 %% ログファイルのローテーションに関しては{@link logi_sink_file_rotator}の実装モジュールが担当している。
 %% (e.g. 日付単位やサイズ単位のローテーション、古いログファイルの削除、ローテート時の圧縮、etc)
 %%
@@ -50,6 +50,8 @@
                 | {logger, logi:logger()}
                 | {rotator, logi_sink_file_rotator:rotator()}
                 | {open_opt, open_options()}.
+%%
+
 %% `logger':
 %% - 起動したwriterのログの出力先
 %% - ディスクフル等によりファイル書き込み自体が行いない場合も、ここにログが出力されるので、`error'以上の深刻度のログメッセージは、信頼できる出力先に吐かれるようにしておくことが推奨される
@@ -65,6 +67,8 @@
 %% - default: `[append, raw, delayed_write]'
 
 -type open_options() :: list().
+%%
+
 %% ログファイルのオープン時に指定するオプション群
 %%
 %% 詳細は[file:mode/0](http://www.erlang.org/doc/man/file.html#type-mode)のドキュメントを参照のこと

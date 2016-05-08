@@ -1,11 +1,8 @@
 
 
 # Module logi_sink_file_rotator_do_nothing #
-* [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
-
-ローテーションを行わない`logi_sink_file_rotator`の実装.
 
 Copyright (c) 2015 Takeru Ohta <phjgt308@gmail.com>
 
