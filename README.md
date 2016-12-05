@@ -106,7 +106,7 @@ Usage Examples
 2016-05-09 13:41:29.150 [info] nonode@nohost <0.195.0> lists:foreach:1337 [] Hello: 2
 2016-05-09 13:41:29.151 [info] nonode@nohost <0.195.0> lists:foreach:1337 [] Hello: 3
 
-> time:sleep(1000).
+> timer:sleep(1000).
 
 > logi:info("World!").
 2016-05-09 13:41:30.812 [info] nonode@nohost <0.195.0> lists:foreach:1337 [] Over a period of 1.661 seconds, 7 messages were dropped
