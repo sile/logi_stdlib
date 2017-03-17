@@ -224,7 +224,7 @@ rotate_and_reopen_file(State0 = #?STATE{current_filepath = OldFilePath, base_fil
                     case open_new_file(BaseFilePath, Rotator0, State0#?STATE.open_options) of
                         {error, Reason}                 -> {error, Reason};
                         {ok, Fd, NewFilePath, Rotator1} ->
-                            State1 = #?STATE{fd = Fd, current_filepath = NewFilePath, rotator = Rotator1},
+                            State1 = State0#?STATE{fd = Fd, current_filepath = NewFilePath, rotator = Rotator1},
                             {ok, RotatedFilePath, State1}
                     end
             end
