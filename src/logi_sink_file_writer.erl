@@ -158,20 +158,21 @@ handle_file_existence_check(State0 = #?STATE{current_filepath = FilePath}) ->
 handle_rotation_check(State0 = #?STATE{current_filepath = FilePath}) ->
     {IsOutdated, NextCheckTime, Rotator} =
         logi_sink_file_rotator:is_outdated(FilePath, State0#?STATE.rotator),
+    State1 = State0#?STATE{rotator = Rotator},
     Result =
         case IsOutdated of
-            false -> {noreply, State0#?STATE{rotator = Rotator}};
+            false -> {noreply, State1};
             true  ->
                 _ = logi:info("The log file is outdated: file=~s", [FilePath]),
-                case rotate_and_reopen_file(State0) of
+                case rotate_and_reopen_file(State1) of
                     {error, Reason} ->
                         _ = logi:alert("Can't reopen an up-to-date log file: reason=~p", [Reason]),
-                        {stop, Reason, State0};
-                    {ok, RotatedFilePath, State1} ->
+                        {stop, Reason, State1};
+                    {ok, RotatedFilePath, State2} ->
                         _ = RotatedFilePath =:= FilePath orelse
                             logi:info("The old log file is rotated: from=~p, to=~p", [FilePath, RotatedFilePath]),
-                        _ = logi:info("A new log file is opened: file=~s", [State1#?STATE.current_filepath]),
-                        {noreply, State1}
+                        _ = logi:info("A new log file is opened: file=~s", [State2#?STATE.current_filepath]),
+                        {noreply, State2}
                 end
         end,
     ok = schedule_rotation_check(NextCheckTime),
