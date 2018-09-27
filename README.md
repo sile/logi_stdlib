@@ -2,6 +2,9 @@ logi_stdlib
 ===========
 
 [![hex.pm version](https://img.shields.io/hexpm/v/logi_stdlib.svg)](https://hex.pm/packages/logi_stdlib)
+[![Build Status](https://travis-ci.org/sile/logi_stdlib.svg?branch=master)](https://travis-ci.org/sile/logi_stdlib)
+[![Code Coverage](https://codecov.io/gh/sile/logi_stdlib/branch/master/graph/badge.svg)](https://codecov.io/gh/sile/logi_stdlib/branch/master)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Standard library for [logi](https://github.com/sile/logi)
 
@@ -33,7 +36,7 @@ $ rebar3 shell
 API
 ---
 
-See [EDoc Documents](doc/README.md)
+See [EDoc Documents](https://hexdocs.pm/logi_stdlib/)
 
 Usage Examples
 --------------
