@@ -23,8 +23,7 @@ install_test_() ->
                ok = logi_source_error_logger:install(),
                ?assertMatch(ok, logi_source_error_logger:install()),
                ?assertEqual(ok, logi_source_error_logger:uninstall()),
-               ?assertEqual(ok, logi_source_error_logger:uninstall()),
-               ?assertMatch({error, _}, logi_source_error_logger:uninstall())
+               ?assertEqual(ok, logi_source_error_logger:uninstall())
        end}
      ]}.
 
